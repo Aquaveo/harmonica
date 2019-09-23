@@ -42,15 +42,13 @@ entry_points = [
 
 
 version = '0.0.1'
-cmd_class = versioneer.get_cmdclass()
-msg = f'cmd_class = {cmd_class}\nversion_dict = {version_dict}'
-raise Exception(msg)
+version_dict['version'] = version
+
 
 setup(
     name='harmonica',
-    # version=version_dict['version'],
-    version=version,
-    cmdclass=cmd_class,
+    version=version_dict['version'],
+    cmdclass=versioneer.get_cmdclass(),
     description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
         "reconstruction and deconstruction.",
     long_description=open('README.md').read(),
