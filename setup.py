@@ -24,10 +24,10 @@ install_requires = [
 ]
 
 extras_require = {
-    'build' : [
+    'build': [
         'setuptools',
     ],
-    'tests' : [],
+    'tests': [],
 }
 
 extras_require['all'] = sorted(set(sum(extras_require.values(), [])))
@@ -42,13 +42,15 @@ entry_points = [
 
 
 version = '0.0.1'
-
+cmd_class = versioneer.get_cmdclass()
+print(f'cmd_class = {cmd_class}')
+print(f'version_dict = {version_dict}')
 
 setup(
     name='harmonica',
     # version=version_dict['version'],
     version=version,
-    cmdclass=versioneer.get_cmdclass(),
+    cmdclass=cmd_class,
     description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
         "reconstruction and deconstruction.",
     long_description=open('README.md').read(),
