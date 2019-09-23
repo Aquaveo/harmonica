@@ -43,8 +43,8 @@ entry_points = [
 
 version = '0.0.1'
 cmd_class = versioneer.get_cmdclass()
-print(f'cmd_class = {cmd_class}')
-print(f'version_dict = {version_dict}')
+msg = f'cmd_class = {cmd_class}\nversion_dict = {version_dict}'
+raise Exception(msg)
 
 setup(
     name='harmonica',
