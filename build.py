@@ -9,9 +9,6 @@ if __name__ == "__main__":
 
     # Hard-code for testing
     release_python = True
-    aquapi_username = 'aquaveo'
-    aquapi_password = 'aquaveo'
-    aquapi_url = 'https://aquapi.aquaveo.com/aquaveo/dev'
 
     if release_python:
         os.system(f'devpi use {aquapi_url}')
