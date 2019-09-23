@@ -14,7 +14,7 @@ if version_dict['error']:
 install_requires = [
     'argparse',
     'dask',
-    'pytides',  # Does not install correctly, I can install from source, but this needs to be fixed
+    'pytides>=0.0.4',  # ERDC fork packaged by Aquaveo
     'netCDF4',
     'numpy',
     'pandas',
@@ -40,9 +40,14 @@ entry_points = [
     'harmonica-resources = harmonica.cli.main_resources:main',
 ]
 
+
+version = '0.0.1'
+
+
 setup(
     name='harmonica',
-    version=version_dict['version'],
+    # version=version_dict['version'],
+    version=version,
     cmdclass=versioneer.get_cmdclass(),
     description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
         "reconstruction and deconstruction.",
