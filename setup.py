@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 import os
-import versioneer
+# import versioneer
 from setuptools import setup
 
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 # Don't proceed with 'unknown' in version
-version_dict = versioneer.get_versions()
-if version_dict['error']:
-    raise RuntimeError(version_dict["error"])
+# version_dict = versioneer.get_versions()
+# if version_dict['error']:
+#    raise RuntimeError(version_dict["error"])
 
 install_requires = [
     'argparse',
@@ -42,13 +42,14 @@ entry_points = [
 
 
 version = '0.0.1'
-version_dict['version'] = version
+# version_dict['version'] = version
 
 
 setup(
     name='harmonica',
-    version=version_dict['version'],
-    cmdclass=versioneer.get_cmdclass(),
+    # version=version_dict['version'],
+    version=version,
+    # cmdclass=versioneer.get_cmdclass(),
     description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
         "reconstruction and deconstruction.",
     long_description=open('README.md').read(),
