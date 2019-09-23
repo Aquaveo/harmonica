@@ -20,7 +20,7 @@ install_requires = [
     'pandas',
     'toolz',
     'xarray',
-    'xmsgrid>=3.0.1'
+    'xmsgrid>=3.0.1',
 ]
 
 extras_require = {
