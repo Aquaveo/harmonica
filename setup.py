@@ -60,7 +60,7 @@ setup(
     url='https://github.com/erdc/harmonica',
     packages=['harmonica', 'harmonica.cli'],
     dependency_links=[
-        'https://aquapi.aquaveo.com/aquaveo/stable/pytides',
+        'https://public.aquapi.aquaveo.com/aquaveo/stable/pytides',
         'https://public.aquapi.aquaveo.com/aquaveo/stable/xmsgrid',
     ],
     entry_points={

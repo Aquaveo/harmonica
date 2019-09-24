@@ -7,6 +7,7 @@ if __name__ == "__main__":
     aquapi_url = os.environ.get('AQUAPI_URL', None)
     release_python = os.environ.get('RELEASE_PYTHON', 'False')
 
+    release_python = 'True'
     if release_python == 'True':
         os.system(f'devpi use {aquapi_url}')
         os.system(f'devpi login {aquapi_username} --password {aquapi_password}')
