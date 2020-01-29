@@ -336,6 +336,24 @@ class ResourceManager(object):
             for dset in d:
                 dset.close()
 
+    @staticmethod
+    def available_models():
+        """Get a dict of flags indicating whether a tidal model has been installed.
+
+        This just performs a quick check for the existence of model data folders. If you need a more robust
+        check, write something else. Needed something fast for dialogs.
+
+        Returns:
+            dict: {'model': True if available else False}
+
+        """
+        return {
+            model: (
+                True if os.path.isdir(os.path.join(config['data_dir'], model)) or
+                os.path.isdir(os.path.join(config['pre_existing_data_dir'], model)) else False
+            ) for model in ResourceManager.RESOURCES
+        }
+
     def available_constituents(self):
         return self.model_atts.available_constituents()
 
