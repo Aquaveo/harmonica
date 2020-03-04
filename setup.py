@@ -41,7 +41,7 @@ entry_points = [
 ]
 
 
-version = '0.2.0'
+version = '0.2.1'
 # version_dict['version'] = version
 
 
