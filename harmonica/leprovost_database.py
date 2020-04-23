@@ -60,6 +60,7 @@ class LeProvostDB(TidalDB):
             cons = self.resources.available_constituents()
         else:  # Be case-insensitive
             cons = [con.upper() for con in cons]
+        cons.sort()  # Request constituent resources in alphabetical order
 
         # Make sure point locations are valid lat/lon
         locs = convert_coords(locs, self.model == "fes2014")
@@ -83,7 +84,7 @@ class LeProvostDB(TidalDB):
                 # TODO: Probably need to find a better way to get the constituent name. _file_obj is undocumented, so
                 # TODO:     there is no guarantee this functionality will be maintained.
                 nc_names = [os.path.splitext(os.path.basename(dset._file_obj._filename))[0].upper() for dset in d]
-            for con_idx, con in enumerate(set(cons) & set(nc_names)):
+            for con_idx, con in enumerate(sorted(set(cons) & set(nc_names))):
                 for i, pt in enumerate(locs):
                     y_lat, x_lon = pt  # lat,lon not x,y
                     xlo = int((x_lon - lon_min) / d_lon) + 1
@@ -106,6 +107,7 @@ class LeProvostDB(TidalDB):
                         skip = True
                     else:  # Make sure we have at least one neighbor with an active amplitude value.
                         if self.model == 'leprovost':
+                            con_idx = nc_names.index(con)
                             amp_dset = d[0].amplitude[con_idx]
                             phase_dset = d[0].phase[con_idx]
                         else:
