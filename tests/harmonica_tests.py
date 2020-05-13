@@ -8,9 +8,6 @@ import unittest
 
 # 3. Local libraries
 
-__copyright__ = "(C) Copyright Aquaveo 2019"
-__license__ = "All rights reserved"
-
 
 WINDOWS_CI_TEST_DATA_DIR = 'C:/temp/harmonica_ci_test_data'
 

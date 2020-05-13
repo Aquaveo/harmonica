@@ -56,8 +56,8 @@ setup(
     long_description_content_type="text/markdown",
     author="Kevin Winters",
     author_email='Kevin.D.Winters@erdc.dren.mil',
-    maintainer="ERS Environmental Simulation",
-    url='https://github.com/erdc/harmonica',
+    maintainer="Aquaveo LLC",
+    url='https://github.com/aquaveo/harmonica',
     packages=['harmonica', 'harmonica.cli'],
     dependency_links=[
         'https://public.aquapi.aquaveo.com/aquaveo/stable'
