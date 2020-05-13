@@ -49,7 +49,7 @@ build:
     - coverage report --fail-under 10 -m --skip-covered
     - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data '{"state":"success", "target_url":"https://git.aquaveo.com", "description":"The build succeeded!", "context":"continuous-integration/gitlab-ci"}'
   except:
-    - trigger
+    - triggers
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
   artifacts:
     paths:
@@ -70,6 +70,6 @@ deployment:
   only:
     - tags
   except:
-    - trigger
+    - triggers
   tags:
     - Windows
