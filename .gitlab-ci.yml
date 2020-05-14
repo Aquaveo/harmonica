@@ -66,7 +66,7 @@ deployment:
     - devpi use %DEVPI_URL%
     - devpi login %DEVPI_USER% --password %DEVPI_PASS%
     - devpi upload --no-vcs --formats sdist
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data '{"state":"success", "target_url":"https://git.aquaveo.com", "description":"The build succeeded!", "context":"continuous-integration/gitlab-ci"}'
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data '{"state":"success", "target_url":"https://git.aquaveo.com", "description":"The deploy succeeded!", "context":"continuous-integration/gitlab-ci"}'
   only:
     - tags
   except:
