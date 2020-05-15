@@ -80,7 +80,7 @@ class LeProvostDB(TidalDB):
         for d in self.resources.get_datasets(cons):
             if self.model == 'leprovost':  # All constituents in one file with constituent name dataset.
                 nc_names = [x.strip().upper() for x in d[0].spectrum.data.tolist()]
-            else:  # FES2014 has seperate files for each constituent with no constituent name dataset.
+            else:  # FES2014 has separate files for each constituent with no constituent name dataset.
                 # TODO: Probably need to find a better way to get the constituent name. _file_obj is undocumented, so
                 # TODO:     there is no guarantee this functionality will be maintained.
                 nc_names = [os.path.splitext(os.path.basename(dset._file_obj._filename))[0].upper() for dset in d]
@@ -106,8 +106,8 @@ class LeProvostDB(TidalDB):
                             or ylo < 0):
                         skip = True
                     else:  # Make sure we have at least one neighbor with an active amplitude value.
+                        con_idx = nc_names.index(con)
                         if self.model == 'leprovost':
-                            con_idx = nc_names.index(con)
                             amp_dset = d[0].amplitude[con_idx]
                             phase_dset = d[0].phase[con_idx]
                         else:

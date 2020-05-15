@@ -1,61 +1,74 @@
-"""For testing."""
-
-# 1. Standard python libraries
+# 1. Standard python modules
+import datetime
+import filecmp
 import os
 import unittest
 
-# 2. Third party libraries
+# 2. Third party modules
 
-# 3. Local libraries
-
-__copyright__ = "(C) Copyright Aquaveo 2019"
-__license__ = "All rights reserved"
-
-
-WINDOWS_CI_TEST_DATA_DIR = 'C:/temp/harmonica_ci_test_data'
+# 3. Local modules
+from harmonica import config
+from harmonica.tidal_constituents import Constituents
 
 
-def ensure_ci_test_data_exists():
-    from harmonica import config
-    config['pre_existing_data_dir'] = WINDOWS_CI_TEST_DATA_DIR
-    if not os.path.exists(WINDOWS_CI_TEST_DATA_DIR):
-        # Download the resources to this test machine.
-        pass
+WINDOWS_CI_TEST_DATA_DIR = r'\\f\sms\tidal_databases'
 
 
-# TODO: Implement these tests once we have the Github repo mirrored to GitLab to use local runners.
 class HarmonicaTests(unittest.TestCase):
-    """
-    Tests the tidal data class.
-    """
+    """Test harmonica Python interface with all supported models."""
+    # Need to be in (lat, lon), not (x, y)
+    LOCS = [
+        (39.74, -74.07),
+        (42.32, -70.0),
+        (45.44, -65.0),
+        (43.63, -124.55),
+        (46.18, -124.38),
+    ]
+    CONS = ['M2', 'S2', 'N2', 'K1']
+    extractor = Constituents()
 
     @classmethod
     def setUpClass(cls):
         # Change working directory to test location
         os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
-        # Make sure data files are present on the test machine
-        ensure_ci_test_data_exists()
+        # Use internal Aquaveo data directory to test protected models.
+        config['pre_existing_data_dir'] = WINDOWS_CI_TEST_DATA_DIR
+
+    def _run_case(self, model):
+        """Run a tidal extraction case for a model.
+
+        Args:
+            model (str): Name of the model to test
+
+        """
+        model_data = self.extractor.get_components(self.LOCS, self.CONS, True, model)
+        with open(f'{model}.out', 'w') as f:
+            for pt in model_data.data:
+                f.write(f'{pt.sort_index().to_string()}\n\n')
+        self.assertTrue(filecmp.cmp(f'{model}.base', f'{model}.out'))
 
     def test_nodal_factor(self):
-        """Test extracting constituent properties for all constituents"""
-        pass
+        """Test extracting astronomical nodal factor data (not dependent on the tidal model)"""
+        nodal_factors = self.extractor.get_nodal_factor(self.CONS, datetime.datetime(2018, 8, 30, 15))
+        with open('nodal_factor.out', 'w') as f:
+            f.write(f'{nodal_factors.to_string()}\n\n')
 
     def test_adcirc(self):
         """Test tidal extraction for the ADCIRC 2015 model"""
-        pass
+        self._run_case('adcirc2015')
 
     def test_leprovost(self):
         """Test tidal extraction for the legacy LeProvost model"""
-        pass
+        self._run_case('leprovost')
 
     def test_fes2014(self):
         """Test tidal extraction for the FES2014 model"""
-        pass
+        self._run_case('fes2014')
 
     def test_tpxo8(self):
         """Test tidal extraction for the TPXO8 model"""
-        pass
+        self._run_case('tpxo8')
 
     def test_tpxo9(self):
         """Test tidal extraction for the TPXO9 model"""
-        pass
+        self._run_case('tpxo9')
