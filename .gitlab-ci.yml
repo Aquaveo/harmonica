@@ -27,7 +27,7 @@ build:
     - coverage run --omit=tests/*,harmonica/cli/*,harmonica/data/*,harmonica/examples/*,*__init__.py --source=harmonica setup.py test
     - coverage html -d coverage_html
     - coverage report --fail-under 10 -m --skip-covered
-    - curl -X POST -H \"Content-Type:application/json\" -H \"Authorization:token %GITHUB_TOKEN%\" \"https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA%\" --data "{\"state\":\"success\", \"target_url\":\"%CI_JOB_URL%\", \"description\":\"The build succeeded!\", \"context\":\"continuous-integration/gitlab-ci\"}"
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" "https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA%" --data "{\"state\":\"success\", \"target_url\":\"%CI_JOB_URL%\", \"description\":\"The build succeeded!\", \"context\":\"continuous-integration/gitlab-ci\"}"
   except:
     - triggers
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
@@ -41,12 +41,12 @@ build:
 deployment:
   stage: deploy
   script:
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data '{"state":"pending", "target_url":"%CI_JOB_URL%", "description":"Gitlab is processing the commit", "context":"continuous-integration/gitlab-ci"}'
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data "{\"state\":\"pending\", \"target_url\":\"%CI_JOB_URL%\", \"description\":\"Gitlab is processing the commit\", \"context\":\"continuous-integration/gitlab-ci\"}"
     - pip.exe install devpi-client
     - devpi use %DEVPI_URL%
     - devpi login %DEVPI_USER% --password %DEVPI_PASS%
     - devpi upload --no-vcs --formats sdist
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data '{"state":"success", "target_url":"%CI_JOB_URL%", "description":"The deploy succeeded!", "context":"continuous-integration/gitlab-ci"}'
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token %GITHUB_TOKEN%" https://api.github.com/repos/%GITHUB_ORG%/%GITHUB_REPO_NAME%/statuses/%CI_COMMIT_SHA% --data "{\"state\":\"success\", \"target_url\":\"%CI_JOB_URL%\", \"description\":\"The deploy succeeded!\", \"context\":\"continuous-integration/gitlab-ci\"}"
   only:
     - tags
   except:
