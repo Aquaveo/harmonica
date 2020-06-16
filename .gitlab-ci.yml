@@ -11,9 +11,10 @@ variables:
 
 mirror:
   stage: mirror
-  image: alpine/git:latest
+  image: centos:7
   script:
     # Set up SSH
+    - yum -y install openssh-clients git
     - eval $(ssh-agent -s)
     - ssh-add <(echo "${MIRROR_KEY}")   
     - mkdir -p ~/.ssh
