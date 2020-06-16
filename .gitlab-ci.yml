@@ -21,7 +21,7 @@ cache:
   stage: "Set Pending Github Status"
   image: curlimages/curl:7.70.0
   script:
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"pending\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"Gitlab is processing the commit\", \"context\":\"continuous-integration/gitlab-ci\"}"
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"pending\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"Gitlab is processing the commit\", \"context\":\"ci/gitlab\"}"
 
 build:
   stage: build
@@ -57,13 +57,13 @@ deployment:
   stage: "Set Final Github Status"
   image: curlimages/curl:7.70.0
   script:
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"success\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"The job succeeded\", \"context\":\"continuous-integration/gitlab-ci\"}"
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"success\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"The job succeeded\", \"context\":\"ci/gitlab\"}"
   when: on_success
 
 "Send Failed Status":
   stage: "Set Final Github Status"
   image: curlimages/curl:7.70.0
   script:
-    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"failure\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"The job failed\", \"context\":\"continuous-integration/gitlab-ci\"}"
+    - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"failure\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"The job failed\", \"context\":\"ci/gitlab\"}"
   when: on_failure
 
