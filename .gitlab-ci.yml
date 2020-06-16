@@ -16,48 +16,6 @@ cache:
     - "$CI_PROJECT_DIR/pip-cache"
   key: "$CI_PROJECT_ID"
 
-#mirror:
-#  stage: mirror
-#  script:
-#    # Set up SSH
-#    - ssh-agent -s
-#    - ssh-add %MIRROR_KEY%
-#    - mkdir %USERPROFILE%\.ssh
-#    - echo %SSH_HOSTKEYS% > %USERPROFILE%\.ssh\known_hosts
-#
-#    # Mirror the Repo
-#    - rmdir /S /Q github
-#    - echo Mirroring from %GITHUB_REPO_URL%
-#    - git clone --bare %GITHUB_REPO_URL% github
-#    - cd github
-#    - git push --mirror %GITLAB_REPO_URL%
-#    - cd ..
-#    - rmdir /S /Q github
-#  only:
-#    - triggers
-
-mirror:
-  stage: mirror
-  image: centos:7
-  script:
-    # Set up SSH
-    - yum -y install openssh-clients git
-    - eval $(ssh-agent -s)
-    - ssh-add <(echo "${MIRROR_KEY}")
-    - mkdir -p ~/.ssh
-    - echo "$SSH_HOSTKEYS" > ~/.ssh/known_hosts
-
-    # Mirror the Repo
-    - if [ -e github ]; then rm -rf github; fi
-    - echo "Mirroring from ${GITHUB_REPO_URL}"
-    - git clone --bare ${GITHUB_REPO_URL} github
-    - cd github
-    - git push --mirror ${GITLAB_REPO_URL}
-    - cd ..
-    - rm -rf github
-  only:
-    - triggers
-
 build:
   stage: build
   variables:
