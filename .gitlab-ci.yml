@@ -3,7 +3,7 @@ stages:
 
 variables:
   GITHUB_REPO_URL: "https://github.com/Aquaveo/harmonica.git"
-  GITLAB_REPO_URL: "https://git.aquaveo.com/Aquaveo/model-executables/harmonica-mirror.git"
+  GITLAB_REPO_URL: "git@git.aquaveo.com:Aquaveo/model-executables/harmonica-mirror.git"
   GITHUB_ORG: "Aquaveo"
   GITHUB_REPO_NAME: "harmonica"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/pip-cache"
