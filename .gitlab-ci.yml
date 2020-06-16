@@ -1,0 +1,31 @@
+stages:
+  - mirror
+
+variables:
+  GITHUB_REPO_URL: "https://github.com/Aquaveo/harmonica.git"
+  GITLAB_REPO_URL: "https://git.aquaveo.com/Aquaveo/model-executables/harmonica-mirror.git"
+  GITHUB_ORG: "Aquaveo"
+  GITHUB_REPO_NAME: "harmonica"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/pip-cache"
+  PYTHON: C:\\Python36
+
+mirror:
+  stage: mirror
+  image: alpine/git:latest
+  script:
+    # Set up SSH
+    - ssh-agent -s
+    - ssh-add %MIRROR_KEY%
+    - mkdir %USERPROFILE%\.ssh
+    - echo %SSH_HOSTKEYS% > %USERPROFILE%\.ssh\known_hosts
+
+    # Mirror the Repo
+    - rmdir /S /Q github
+    - echo Mirroring from %GITHUB_REPO_URL%
+    - git clone --bare %GITHUB_REPO_URL% github
+    - cd github
+    - git push --mirror %GITLAB_REPO_URL%
+    - cd ..
+    - rmdir /S /Q github
+  only:
+    - triggers
