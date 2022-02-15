@@ -10,7 +10,6 @@ variables:
   GITHUB_ORG: "Aquaveo"
   GITHUB_REPO_NAME: "harmonica"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/pip-cache"
-  PYTHON: C:\\Python36
 
 cache:
   paths:
@@ -25,6 +24,7 @@ cache:
 
 build:
   stage: build
+  image: GLR-py310
   variables:
     PIP_INDEX_URL: "https://public.aquapi.aquaveo.com/aquaveo/stable"
   script:
@@ -39,10 +39,11 @@ build:
       - coverage_html
     expire_in: 1 week
   tags:
-    - Windows
+    - WinVM
 
 deployment:
   stage: deploy
+  image: GLR-py310
   script:
     - pip.exe install devpi-client
     - devpi use %DEVPI_URL%
@@ -51,7 +52,7 @@ deployment:
   only:
     - tags
   tags:
-    - Windows
+    - WinVM
 
 "Send Success Status":
   stage: "Set Final Github Status"

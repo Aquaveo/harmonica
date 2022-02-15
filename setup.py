@@ -9,13 +9,13 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 install_requires = [
     'argparse',
     'dask',
-    'pytides>=0.0.4',  # ERDC fork packaged by Aquaveo
+    'pytides>=1.0.0',  # ERDC fork packaged by Aquaveo
     'netCDF4',
     'numpy',
     'pandas',
     'toolz',
     'xarray',
-    'xmsgrid>=4.2.0',
+    'xmsgrid>=6.0.0',
 ]
 
 extras_require = {
@@ -36,7 +36,7 @@ entry_points = [
 ]
 
 
-version = '1.0.1'
+version = '2.0.0'
 
 
 setup(
@@ -70,8 +70,7 @@ setup(
         'Natural Language :: English',
         'Topic :: Scientific/Engineering'
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
     ],
     python_requires="!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 )
