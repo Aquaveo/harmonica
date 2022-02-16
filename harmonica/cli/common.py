@@ -1,11 +1,22 @@
+"""The helper functions shared by all the CLI commands."""
+# 1. Standard python modules
+from argparse import _HelpAction
+
+# 2. Third party modules
+
+# 3. Aquaveo modules
+
+# 4. Local modules
 from .. import __version__
 from ..resource import ResourceManager
-from argparse import _HelpAction
-from datetime import date
-import itertools
 
 
 def add_common_args(p):
+    """Add the common arguments to the argument parser.
+
+    Args:
+        p (ArgumentParser): The parser to add arguments to.
+    """
     # You must use the add_help=False argument to ArgumentParser or add_parser
     p.add_argument(
         '-h', '--help',
@@ -21,6 +32,11 @@ def add_common_args(p):
 
 
 def add_loc_model_args(p):
+    """Add the location and model option arguments to the argument parser.
+
+    Args:
+        p (ArgumentParser): The parser to add arguments to.
+    """
     # Required positional arguments
     # This combined argument is preferred but there is a bug in argparse with unpacking a multi-value metavar
     # p.add_argument(
@@ -52,6 +68,11 @@ def add_loc_model_args(p):
 
 
 def add_const_out_args(p):
+    """Add the constituent output option arguments to the argument parser.
+
+    Args:
+        p (ArgumentParser): The parser to add arguments to.
+    """
     p.add_argument(
         '-C', '--cons',
         nargs='+',

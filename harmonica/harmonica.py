@@ -1,19 +1,27 @@
-from .tidal_constituents import Constituents
-from .tidal_database import NOAA_SPEEDS
-from .resource import ResourceManager
-from pytides.astro import astro
-from pytides.tide import Tide as pyTide
-import pytides.constituent as pycons
+"""Class to represent tides in harmonica."""
+# 1. Standard python modules
 from datetime import datetime
+
+# 2. Third party modules
 import numpy as np
 import pandas as pd
+from pytides.astro import astro
+import pytides.constituent as pycons
+from pytides.tide import Tide as pyTide
+
+# 3. Aquaveo modules
+
+# 4. Local modules
+from .resource import ResourceManager
+from .tidal_constituents import Constituents
+from .tidal_database import NOAA_SPEEDS
 
 
 class Tide:
     """Harmonica tide object."""
 
     # Dictionary to convert generic uppercase constituent name to pytides name;
-    # if name isn't listed, then the associated pytides name is all uppercase 
+    # if name isn't listed, then the associated pytides name is all uppercase
     PYTIDES_CON_MAPPER = {
         'SA': 'Sa',
         'SSA': 'Ssa',
@@ -26,13 +34,18 @@ class Tide:
     }
 
     def __init__(self, model=ResourceManager.DEFAULT_RESOURCE):
+        """Constructor.
+
+        Args:
+            model (str): Name of the model to use. See ResourceManager constants for valid values.
+        """
         # tide dataframe:
         #   date_times (year, month, day, hour, minute, second; UTC/GMT)
         self.data = pd.DataFrame(columns=['datetimes', 'water_level'])
         self.constituents = Constituents(model=model)
 
-    def reconstruct_tide(self, loc, times, model=None, cons=[], positive_ph=False, offset=None):
-        """Rescontruct a tide signal water levels at the given location and times
+    def reconstruct_tide(self, loc, times, model=None, cons=None, positive_ph=False, offset=None):
+        """Rescontruct a tide signal water levels at the given location and times.
 
         Args:
             loc (tuple(float, float)): latitude [-90, 90] and longitude [-180 180] or [0 360] of the requested point.
@@ -42,10 +55,9 @@ class Tide:
             positive_ph (bool, optional): Indicate if the returned phase should be all positive [0 360] (True) or
                 [-180 180] (False, the default).
             offset (float, optional): If not None, includes a generic constituent with a phase of the given value.
-
         """
-
         # get constituent information
+        cons = cons if cons else []
         self.constituents.get_components([loc], cons, positive_ph, model=model)
 
         ncons = len(self.constituents.data[0]) + (1 if offset is not None else 0)
@@ -67,7 +79,7 @@ class Tide:
 
         return self
 
-    def deconstruct_tide(self, water_level, times, cons=[], n_period=6, positive_ph=False):
+    def deconstruct_tide(self, water_level, times, cons=None, n_period=6, positive_ph=False):
         """Method to use pytides to deconstruct the tides and reorganize results back into the class structure.
 
         Args:
@@ -80,19 +92,17 @@ class Tide:
 
         Returns:
             A dataframe of constituents information in Constituents class
-
         """
         # Fit the tidal data to the harmonic model using pytides
         if not cons:
             cons = pycons.noaa
         else:
-            cons = [eval('pycons._{}'.format(self.PYTIDES_CON_MAPPER.get(c, c))) for c in cons
-                if c in NOAA_SPEEDS]
-        self.model_to_dataframe(pyTide.decompose(water_level, times, constituents=cons, n_period=n_period),
-            times[0], positive_ph=positive_ph)
+            cons = [eval('pycons._{}'.format(self.PYTIDES_CON_MAPPER.get(c, c))) for c in cons if c in NOAA_SPEEDS]
+        self.model_to_dataframe(pyTide.decompose(water_level, times, constituents=cons, n_period=n_period), times[0],
+                                positive_ph=positive_ph)
         return self
 
-    def model_to_dataframe(self, tide, t0=datetime.now(), positive_ph=False):
+    def model_to_dataframe(self, tide, t0=None, positive_ph=False):
         """Method to reorganize data from the pytides tide model format into the native dataframe format.
 
         Args:
@@ -104,18 +114,21 @@ class Tide:
 
         Returns:
             A dataframe of constituents information in Constituents class
-
         """
+        t0 = t0 if t0 is not None else datetime.now()
+
         # helper function to extract constituent information from Tide model
         def extractor(c):
             # info: name, amplitude, phase, speed
-            return (c[0].name.upper(), c[1], c[2], c[0].speed(astro(t0)))
+            return c[0].name.upper(), c[1], c[2], c[0].speed(astro(t0))
+
         # create a filtered array of constituent information
         cons = np.asarray(np.vectorize(extractor)(tide.model[tide.model['constituent'] != pycons._Z0])).T
         # convert into dataframe
-        df = pd.DataFrame(cons[:,1:], index=cons[:,0], columns=['amplitude', 'phase', 'speed'], dtype=float)
+        df = pd.DataFrame(cons[:, 1:], index=cons[:, 0], columns=['amplitude', 'phase', 'speed'], dtype=float)
         self.constituents.data[0] = pd.concat([self.constituents.data[0], df], axis=0, join='inner')
         # convert phase if necessary
         if not positive_ph:
             self.constituents.data[0]['phase'] = np.where(self.constituents.data[0]['phase'] > 180.,
-                self.constituents.data[0]['phase'] - 360., self.constituents.data[0]['phase'])
+                                                          self.constituents.data[0]['phase'] - 360.,
+                                                          self.constituents.data[0]['phase'])

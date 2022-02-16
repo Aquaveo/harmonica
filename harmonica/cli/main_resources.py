@@ -1,6 +1,15 @@
-from ..resource import ResourceManager
+"""The resources CLI command."""
+# 1. Standard python modules
 import argparse
 import sys
+
+# 2. Third party modules
+
+# 3. Aquaveo modules
+
+# 4. Local modules
+from ..resource import ResourceManager
+
 
 DESCR = 'Manage model resources for subsequent analysis calls.'
 EXAMPLE = """
@@ -15,6 +24,12 @@ actions = {
 
 
 def config_parser(p, sub=False):
+    """Configure the command line arguments passed the resources CLI command.
+
+    Args:
+        p (ArgumentParser): The argument parser
+        sub (Optional[bool]): True if this is a resources subparser
+    """
     # Subparser info
     if sub:
         p = p.add_parser(
@@ -39,6 +54,14 @@ def config_parser(p, sub=False):
 
 
 def parse_args(args):
+    """Parse the command line arguments passed the resources CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+
+    Returns:
+        ArgumentParser: The command line argument parser
+    """
     p = argparse.ArgumentParser(
         description=DESCR,
         epilog=EXAMPLE,
@@ -49,11 +72,21 @@ def parse_args(args):
 
 
 def execute(args):
+    """Execute the resources CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     eval('ResourceManager(model=args.model).{}()'.format(actions[args.action]))
     print('\nComplete.\n')
 
 
 def main(args=None):
+    """Entry point for the resources CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     if not args:
         args = sys.argv[1:]
     try:

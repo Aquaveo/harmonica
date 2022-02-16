@@ -1,6 +1,15 @@
-from ..resource import ResourceManager
+"""The download CLI command."""
+# 1. Standard python modules
 import argparse
 import sys
+
+# 2. Third party modules
+
+# 3. Aquaveo modules
+
+# 4. Local modules
+from ..resource import ResourceManager
+
 
 DESCR = 'Download and pre-position model resources for subsequent analysis calls.'
 EXAMPLE = """
@@ -11,6 +20,12 @@ Example:
 
 
 def config_parser(p, sub=False):
+    """Configure the command line arguments passed the download CLI command.
+
+    Args:
+        p (ArgumentParser): The argument parser
+        sub (Optional[bool]): True if this is a resources subparser
+    """
     # Subparser info
     if sub:
         p = p.add_parser(
@@ -30,6 +45,14 @@ def config_parser(p, sub=False):
 
 
 def parse_args(args):
+    """Parse the command line arguments passed the download CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+
+    Returns:
+        ArgumentParser: The command line argument parser
+    """
     p = argparse.ArgumentParser(
         description=DESCR,
         epilog=EXAMPLE,
@@ -40,11 +63,21 @@ def parse_args(args):
 
 
 def execute(args):
+    """Execute the download CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     ResourceManager(model=args.model).download_model()
     print('\nComplete.\n')
 
 
 def main(args=None):
+    """Entry point for the download CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     if not args:
         args = sys.argv[1:]
     try:

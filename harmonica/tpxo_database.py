@@ -1,7 +1,14 @@
+"""Class to manage the TPXO tidal database models."""
+# 1. Standard python modules
 from bisect import bisect
+
+# 2. Third party modules
 import numpy as np
 import pandas as pd
 
+# 3. Aquaveo modules
+
+# 4. Local modules
 from .resource import ResourceManager
 from .tidal_database import NOAA_SPEEDS, TidalDB
 
@@ -93,11 +100,11 @@ class TpxoDB(TidalDB):
                         weights = weights / weights.sum()
                         # devise the slice to subset surrounding values
                         if single_file:
-                            query = np.s_[idx['con'], idx['left']:idx['right']+1, idx['bottom']:idx['top']+1]
+                            query = np.s_[idx['con'], idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
                         else:
                             query = np.s_[idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
                         # calculate the weighted tide from real and imaginary components
-                        h = np.complex(
+                        h = complex(
                             (dset.hRe.values[query] * weights).sum(), -(dset.hIm.values[query] * weights).sum()
                         )
                         # get the phase and amplitude

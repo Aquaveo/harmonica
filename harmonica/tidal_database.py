@@ -1,14 +1,19 @@
-#! python3
-
+"""Base class for the tidal database models."""
+# 1. Standard python modules
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 import math
 
+# 2. Third party modules
 import numpy
 import pandas as pd
 from pytides.astro import astro
 
+# 3. Aquaveo modules
+
+# 4. Local modules
 from .resource import ResourceManager
+
 
 NCNST = 37
 
@@ -99,9 +104,11 @@ def convert_coords(coords, zero_to_360=False):
             x_lon += 360.0
         if not zero_to_360 and x_lon > 180.0:
             x_lon -= 360.0
-        if y_lat > 90.0 or y_lat < -90.0 or (  # Invalid latitude
-                    not zero_to_360 and (x_lon > 180.0 or x_lon < -180.0)) or (  # Invalid [-180, 180]
-                    zero_to_360 and (x_lon > 360.0 or x_lon < 0.0)):  # Invalid [0, 360]
+
+        bad_lat = y_lat > 90.0 or y_lat < -90.0  # Invalid latitude
+        bad_lon = not zero_to_360 and (x_lon > 180.0 or x_lon < -180.0)  # Invalid [-180, 180]
+        bad_lon = bad_lon or (zero_to_360 and (x_lon > 360.0 or x_lon < 0.0))  # Invalid [0, 360]
+        if bad_lat or bad_lon:
             # ERROR: Not in latitude/longitude
             return None
         else:
@@ -119,9 +126,7 @@ class OrbitVariables(object):
 
     """
     def __init__(self):
-        """Construct the container
-
-        """
+        """Construct the container."""
         self.astro = {}
         self.grterm = {con: 0.0 for con in NOAA_SPEEDS}
         self.nodfac = {con: 0.0 for con in NOAA_SPEEDS}
@@ -141,11 +146,10 @@ class TidalDB(object):
     day_t = [0.0, 31.0, 59.0, 90.0, 120.0, 151.0, 181.0, 212.0, 243.0, 273.0, 304.0, 334.0]
 
     def __init__(self, model):
-        """Base class constructor for the tidal extractors
+        """Base class constructor for the tidal extractors.
 
         Args:
             model (str): The name of the model. See resource.py for supported models.
-
         """
         self.orbit = OrbitVariables()
         # constituent information dataframe:
@@ -175,7 +179,6 @@ class TidalDB(object):
                 information including amplitude (meters), phase (degrees) and speed (degrees/hour, UTC/GMT). The list is
                 parallel with locs, where each element in the return list is the constituent data for the corresponding
                 element in locs. Empty list on error. Note that function uses fluent interface pattern.
-
         """
         pass
 
@@ -187,7 +190,6 @@ class TidalDB(object):
 
         Returns:
             bool: True if the constituent is valid, False otherwise
-
         """
         return name.upper() in self.resources.available_constituents()
 
@@ -203,7 +205,6 @@ class TidalDB(object):
             :obj:`pandas.DataFrame`: Constituent data frames. Each row contains frequency, earth tidal reduction factor,
                 amplitude, nodal factor, and equilibrium argument for one of the specified constituents. Rows labeled by
                 constituent name.
-
         """
         con_data = pd.DataFrame(columns=['amplitude', 'frequency', 'speed', 'earth_tide_reduction_factor',
                                          'equilibrium_argument', 'nodal_factor'])
@@ -215,7 +216,7 @@ class TidalDB(object):
             second = int((float_minutes - minute) * 60.0)
             timestamp_middle = datetime(timestamp.year, timestamp.month, timestamp.day, hour, minute, second)
         self.get_eq_args(timestamp, timestamp_middle)
-        for idx, name in enumerate(names):
+        for name in names:
             name = name.upper()
             if name not in NOAA_SPEEDS:
                 con_data.loc[name] = [numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan]
@@ -236,7 +237,6 @@ class TidalDB(object):
         Args:
             timestamp (:obj:`datetime.datetime`): Date and time to extract constituent arguments at
             timestamp_middle (:obj:`datetime.datetime`): Date and time to consider as the middle of the series
-
         """
         self.nfacs(timestamp_middle)
         self.gterms(timestamp, timestamp_middle)
@@ -250,7 +250,6 @@ class TidalDB(object):
 
         Returns:
             The angle converted to be within 0-360.
-
         """
         ret_val = a_number
         while ret_val < 0.0:
@@ -264,7 +263,6 @@ class TidalDB(object):
 
         Args:
            timestamp (:obj:`datetime.datetime`): Date and time to extract constituent arguments at.
-
         """
         self.orbit.astro = astro(timestamp)
 
@@ -276,7 +274,6 @@ class TidalDB(object):
 
         Returns:
             The same values as found in table 14 of Schureman.
-
         """
         self.set_orbit(timestamp)
         fi = math.radians(self.orbit.astro['i'].value)
@@ -352,7 +349,6 @@ class TidalDB(object):
             timestamp_middle (:obj:`datetime.datetime`): Date and time to consider as the middle of the series
         Returns:
             The same values as found in table 15 of Schureman.
-
         """
         # OBTAINING ORBITAL VALUES AT BEGINNING OF SERIES FOR V0
         self.set_orbit(timestamp)

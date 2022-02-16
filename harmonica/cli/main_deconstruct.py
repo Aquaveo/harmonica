@@ -1,11 +1,17 @@
-from .. import harmonica
-from .common import add_common_args, add_const_out_args
-from pytides.tide import Tide as pyTide
-from datetime import datetime
+"""The deconstruct CLI command."""
+# 1. Standard python modules
 import argparse
-import numpy as np
-import pandas as pd
 import sys
+
+# 2. Third party modules
+import pandas as pd
+
+# 3. Aquaveo modules
+
+# 4. Local modules
+from .common import add_common_args, add_const_out_args
+from .. import harmonica
+
 
 DESCR = 'Deconstruct the signal into its tidal constituents.'
 EXAMPLE = """
@@ -17,6 +23,12 @@ Example:
 
 
 def config_parser(p, sub=False):
+    """Configure the command line arguments passed the deconstruct CLI command.
+
+    Args:
+        p (ArgumentParser): The argument parser
+        sub (Optional[bool]): True if this is a resources subparser
+    """
     # Subparser info
     if sub:
         p = p.add_parser(
@@ -39,8 +51,8 @@ def config_parser(p, sub=False):
     p.add_argument(
         '--datetime_format',
         default='%Y-%m-%d %H:%M:%S',
-        help="Format of 'datetime' values in signal file, default: '%%Y-%%m-%%d %%H:%%M:%%S' (used by Pandas " \
-            "datetime parser)",
+        help="Format of 'datetime' values in signal file, default: '%%Y-%%m-%%d %%H:%%M:%%S' (used by Pandas "
+             "datetime parser)",
         dest='dt_format',
     )
     p.add_argument(
@@ -73,6 +85,14 @@ def config_parser(p, sub=False):
 
 
 def parse_args(args):
+    """Parse the command line arguments passed the deconstruct CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+
+    Returns:
+        ArgumentParser: The command line argument parser
+    """
     p = argparse.ArgumentParser(
         description=DESCR,
         epilog=EXAMPLE,
@@ -84,6 +104,11 @@ def parse_args(args):
 
 
 def execute(args):
+    """Execute the deconstruct CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     args.dt_cols = [int(x) if isinstance(x, str) and x.isdigit() else x for x in args.dt_cols]
     opts = {
         'date_parser': lambda x: [pd.datetime.strptime(d, args.dt_format) for d in x],
@@ -97,8 +122,8 @@ def execute(args):
         if 'not in list' in str(e):
             print("\nThe column name '{}' is not recognized.".format(str(e).split("'")[1]))
         elif 'match format' in str(e):
-            print("\nThe signal's datetime does not match the given format: {}. Verify format and/or header row " \
-                "number".format(args.dt_format))
+            print("\nThe signal's datetime does not match the given format: {}. Verify format and/or header row "
+                  "number".format(args.dt_format))
         else:
             print(str(e))
     except KeyError:
@@ -108,7 +133,7 @@ def execute(args):
     wl = df.columns[wl] if isinstance(wl, int) else wl
     try:
         tide = harmonica.Tide().deconstruct_tide(df[wl], df['datetimes'], cons=args.cons,
-            n_period=args.num_periods, positive_ph=args.positive_phase)
+                                                 n_period=args.num_periods, positive_ph=args.positive_phase)
     except RuntimeWarning as w:
         if 'Number of calls to function has reached maxfev' in str(w):
             print("\nThe solver failed to converge to a solution. Provide a longer signal.")
@@ -124,6 +149,11 @@ def execute(args):
 
 
 def main(args=None):
+    """Entry point for the deconstruct CLI command.
+
+    Args:
+        args (...): Variable length positional arguments
+    """
     if not args:
         args = sys.argv[1:]
     try:

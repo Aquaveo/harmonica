@@ -1,11 +1,17 @@
+"""Resource managers for the tidal database models supported in harmonica."""
+# 1. Standard python modules
 from abc import ABCMeta, abstractmethod
 import os
 import shutil
 import urllib.request
 from zipfile import ZipFile
 
+# 2. Third party modules
 import xarray as xr
 
+# 3. Aquaveo modules
+
+# 4. Local modules
 from harmonica import config
 
 
@@ -13,72 +19,61 @@ MAX_NUM_CONS = 37  # Maximum number of constituents in all available models
 
 
 class Resources(object):
-    """Abstract base class for model resources
-
-    """
+    """Abstract base class for model resources."""
     def __init__(self):
-        """Base constructor
-
-        """
+        """Base constructor."""
         pass
 
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def resource_attributes(self):
-        """Get the resource attributes of a model (e.g. web url, compression type)
+        """Get the resource attributes of a model (e.g. web url, compression type).
 
         Returns:
             dict: Dictionary of model resource attributes
-
         """
         return {}
 
     @abstractmethod
     def dataset_attributes(self):
-        """Get the dataset attributes of a model (e.g. unit multiplier, grid dimensions)
+        """Get the dataset attributes of a model (e.g. unit multiplier, grid dimensions).
 
         Returns:
             dict: Dictionary of model dataset attributes
-
         """
         return {}
 
     @abstractmethod
     def available_constituents(self):
-        """Get all the available constituents of a model
+        """Get all the available constituents of a model.
 
         Returns:
             list: List of all the available constituents
-
         """
         return []
 
     @abstractmethod
     def constituent_groups(self):
-        """Get all the available constituents of a model grouped by compatible file types
+        """Get all the available constituents of a model grouped by compatible file types.
 
         Returns:
-            list(list): 2-D list of available constituents, where the first dimension groups compatible files
-
+            list[list]: 2-D list of available constituents, where the first dimension groups compatible files
         """
         return []
 
     @abstractmethod
     def constituent_resource(self, con):
-        """Get the resource name of a constituent
+        """Get the resource name of a constituent.
 
         Returns:
             str: Name of the constituent's resource
-
         """
         return None
 
 
 class Tpxo8Resources(Resources):
-    """TPXO8 resources
-
-    """
+    """TPXO8 resources."""
     TPXO8_CONS = [
         {  # 1/30 degree
             'K1': 'hf.k1_tpxo8_atlas_30c_v1.nc',
@@ -100,27 +95,42 @@ class Tpxo8Resources(Resources):
     ]
 
     def __init__(self):
+        """Constructor."""
         super().__init__()
 
     def resource_attributes(self):
+        """Returns a dict of the resource attributes that are disabled (TPXO8 is not freely available)."""
         return {
             'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
             'archive': None,
         }
 
     def dataset_attributes(self):
+        """Returns a dict of the TPXO8 dataset attributes (currently just 'units_muliplier')."""
         return {
             'units_multiplier': 0.001,  # mm to meter
         }
 
     def available_constituents(self):
+        """Returns a list of the constituents supported by the TPXO8 tidal database."""
         # get keys from const groups as list of lists and flatten
         return [c for sl in [grp.keys() for grp in self.TPXO8_CONS] for c in sl]
 
     def constituent_groups(self):
+        """Returns a list of the constituents supported by the TPXO8 tidal database (2-D)."""
         return [self.TPXO8_CONS[0], self.TPXO8_CONS[1]]
 
     def constituent_resource(self, con):
+        """Get the filename given a constituent.
+
+        Args:
+            con (str): Name of the constituent to get resource filename of. See TPXO8_CONS for list of available
+                constituents
+
+        Returns:
+            str: The basename of the resource file if the specified constituent is supported by the TPXO8 tidal
+                database, else None
+        """
         con = con.upper()
         for group in self.TPXO8_CONS:
             if con in group:
@@ -129,33 +139,46 @@ class Tpxo8Resources(Resources):
 
 
 class Tpxo9Resources(Resources):
-    """TPXO9 resources
-
-    """
+    """TPXO9 resources."""
     TPXO9_CONS = {'2N2', 'K1', 'K2', 'M2', 'M4', 'MF', 'MM', 'MN4', 'MS4', 'N2', 'O1', 'P1', 'Q1', 'S1', 'S2'}
     DEFAULT_RESOURCE_FILE = 'tpxo9_netcdf/h_tpxo9.v1.nc'
 
     def __init__(self):
+        """Constructor."""
         super().__init__()
 
     def resource_attributes(self):
+        """Returns a dict of the resource attributes that are disabled (TPXO9 is not freely available)."""
         return {
             'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
             'archive': 'gz',
         }
 
     def dataset_attributes(self):
+        """Returns a dict of the TPXO9 dataset attributes (currently just 'units_muliplier')."""
         return {
             'units_multiplier': 1.0,  # meter
         }
 
     def available_constituents(self):
+        """Returns a list of the constituents supported by the TPXO9 tidal database."""
         return self.TPXO9_CONS
 
     def constituent_groups(self):
+        """Returns a list of the constituents supported by the TPXO9 tidal database (2-D)."""
         return [self.available_constituents()]
 
     def constituent_resource(self, con):
+        """Get the filename given a constituent.
+
+        Args:
+            con (str): Name of the constituent to get resource filename of. See TPXO9_CONS for list of available
+                constituents
+
+        Returns:
+            str: The basename of the resource file if the specified constituent is supported by the TPXO9 tidal
+                database, else None
+        """
         if con.upper() in self.TPXO9_CONS:
             return self.DEFAULT_RESOURCE_FILE
         else:
@@ -163,22 +186,23 @@ class Tpxo9Resources(Resources):
 
 
 class LeProvostResources(Resources):
-    """LeProvost resources
-
-    """
+    """LeProvost resources."""
     LEPROVOST_CONS = {'K1', 'K2', 'M2', 'N2', 'O1', 'P1', 'Q1', 'S2', 'NU2', 'MU2', '2N2', 'T2', 'L2'}
     DEFAULT_RESOURCE_FILE = 'leprovost_tidal_db.nc'
 
     def __init__(self):
+        """Constructor."""
         super().__init__()
 
     def resource_attributes(self):
+        """Returns a dict of the resource attributes needed to fetch the freely available LeProvost tidal database."""
         return {
             'url': 'http://sms.aquaveo.com/leprovost_tidal_db.zip',
             'archive': 'zip',  # zip compression
         }
 
     def dataset_attributes(self):
+        """Returns a dict of the LeProvost dataset attributes."""
         return {
             'units_multiplier': 1.0,  # meter
             'num_lats': 361,
@@ -187,12 +211,24 @@ class LeProvostResources(Resources):
         }
 
     def available_constituents(self):
+        """Returns a list of the constituents supported by the LeProvost tidal database."""
         return self.LEPROVOST_CONS
 
     def constituent_groups(self):
+        """Returns a list of the constituents supported by the LeProvost tidal database (2-D)."""
         return [self.available_constituents()]
 
     def constituent_resource(self, con):
+        """Get the filename given a constituent.
+
+        Args:
+            con (str): Name of the constituent to get resource filename of. See LEPROVOST_CONS for list of available
+                constituents
+
+        Returns:
+            str: The basename of the resource file if the specified constituent is supported by the LeProvost tidal
+                database, else None
+        """
         if con.upper() in self.LEPROVOST_CONS:
             return self.DEFAULT_RESOURCE_FILE
         else:
@@ -200,9 +236,7 @@ class LeProvostResources(Resources):
 
 
 class FES2014Resources(Resources):
-    """FES2014 resources
-
-    """
+    """FES2014 resources."""
     FES2014_CONS = {
         '2N2': '2n2.nc',
         'EPS2': 'eps2.nc',
@@ -241,15 +275,18 @@ class FES2014Resources(Resources):
     }
 
     def __init__(self):
+        """Constructor."""
         super().__init__()
 
     def resource_attributes(self):
+        """Returns a dict of the resource attributes that are disabled (FES2014 is not freely available)."""
         return {
             'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
             'archive': None,
         }
 
     def dataset_attributes(self):
+        """Returns a dict of the FES2014 dataset attributes."""
         return {
             'units_multiplier': 1.0,  # meter
             'num_lats': 2881,
@@ -258,12 +295,24 @@ class FES2014Resources(Resources):
         }
 
     def available_constituents(self):
+        """Returns a list of the constituents supported by the FES2014 tidal database."""
         return self.FES2014_CONS.keys()
 
     def constituent_groups(self):
+        """Returns a list of the constituents supported by the FES2014 tidal database (2-D)."""
         return [self.available_constituents()]
 
     def constituent_resource(self, con):
+        """Get the filename given a constituent.
+
+        Args:
+            con (str): Name of the constituent to get resource filename of. See FES2014_CONS for list of available
+                constituents
+
+        Returns:
+            str: The basename of the resource file if the specified constituent is supported by the FES2014 tidal
+                database, else None
+        """
         con = con.upper()
         if con in self.FES2014_CONS:
             return self.FES2014_CONS[con]
@@ -272,9 +321,7 @@ class FES2014Resources(Resources):
 
 
 class Adcirc2015Resources(Resources):
-    """ADCIRC (v2015) resources
-
-    """
+    """ADCIRC (v2015) resources."""
     ADCIRC_CONS = {
         'M2', 'S2', 'N2', 'K1', 'M4', 'O1', 'M6', 'Q1', 'K2', 'L2', '2N2', 'R2', 'T2', 'LAMBDA2', 'MU2',
         'NU2', 'J1', 'M1', 'OO1', 'P1', '2Q1', 'RHO1', 'M8', 'S4', 'S6', 'M3', 'S1', 'MK3', '2MK3', 'MN4',
@@ -283,26 +330,39 @@ class Adcirc2015Resources(Resources):
     DEFAULT_RESOURCE_FILE = 'all_adcirc.nc'
 
     def __init__(self):
+        """Constructor."""
         super().__init__()
 
     def resource_attributes(self):
+        """Returns a dict of the resource attributes needed to fetch the freely available ADCIRC tidal database."""
         return {
             'url': 'http://sms.aquaveo.com/',
             'archive': None,  # Uncompressed NetCDF file
         }
 
     def dataset_attributes(self):
-        return {
-            'units_multiplier': 1.0,  # meter
-        }
+        """Returns a dict of the dataset attributes (currently only 'units_multiplier')."""
+        return {'units_multiplier': 1.0}  # meter
 
     def available_constituents(self):
+        """Returns a list of the constituents supported by the ADCIRC tidal database."""
         return self.ADCIRC_CONS
 
     def constituent_groups(self):
+        """Returns a list of the constituents supported by the ADCIRC tidal database (2-D)."""
         return [self.available_constituents()]
 
     def constituent_resource(self, con):
+        """Get the filename given a constituent.
+
+        Args:
+            con (str): Name of the constituent to get resource filename of. See ADCIRC_CONS for list of available
+                constituents
+
+        Returns:
+            str: The basename of the resource file if the specified constituent is supported by the ADCIRC tidal
+                database, else None
+        """
         if con.upper() in self.ADCIRC_CONS:
             return self.DEFAULT_RESOURCE_FILE
         else:
@@ -310,7 +370,7 @@ class Adcirc2015Resources(Resources):
 
 
 class ResourceManager(object):
-    """Harmonica resource manager to retrieve and access tide models"""
+    """Harmonica resource manager to retrieve and access tide models."""
 
     RESOURCES = {
         'tpxo8': Tpxo8Resources(),
@@ -325,6 +385,12 @@ class ResourceManager(object):
     DEFAULT_RESOURCE = 'tpxo9'
 
     def __init__(self, model=DEFAULT_RESOURCE):
+        """Constructor.
+
+        Args:
+            model (str): Name of the model to use initially.  See the constants defined in ResourceManager for valid
+                values.
+        """
         if model not in self.RESOURCES:
             raise ValueError('Model not recognized.')
         self.model = model
@@ -332,9 +398,26 @@ class ResourceManager(object):
         self.datasets = []
 
     def __del__(self):
+        """Deleter - closes Dataset file handles."""
         for d in self.datasets:
             for dset in d:
                 dset.close()
+
+    @staticmethod
+    def data_dir_exists(model):
+        """Check if a model's data directory exists in either the default location or the configurable one.
+
+        Args:
+            model (str): Name of the model. See the constants defined in ResourceManager for valid values.
+
+        Returns:
+            bool: True if the model's data folder exists in either location.
+        """
+        if os.path.isdir(os.path.join(config['data_dir'], model)):
+            return True  # Exists in the default %APPDATA% folder
+        if os.path.isdir(os.path.join(config['pre_existing_data_dir'], model)):
+            return True  # Exists in the user configurable folder
+        return False
 
     @staticmethod
     def available_models():
@@ -345,19 +428,15 @@ class ResourceManager(object):
 
         Returns:
             dict: {'model': True if available else False}
-
         """
-        return {
-            model: (
-                True if os.path.isdir(os.path.join(config['data_dir'], model)) or
-                os.path.isdir(os.path.join(config['pre_existing_data_dir'], model)) else False
-            ) for model in ResourceManager.RESOURCES
-        }
+        return {model: ResourceManager.data_dir_exists(model) for model in ResourceManager.RESOURCES}
 
     def available_constituents(self):
+        """Returns a list of the available constituents for the current model."""
         return self.model_atts.available_constituents()
 
     def get_units_multiplier(self):
+        """Returns the units multiplier for the current model."""
         return self.model_atts.dataset_attributes()['units_multiplier']
 
     def download(self, resource, destination_dir):
@@ -431,8 +510,17 @@ class ResourceManager(object):
 
             shutil.rmtree(resource_dir, ignore_errors=True)
 
-    def get_datasets(self, constituents):
-        """Returns a list of xarray datasets."""
+    def get_datasets(self, constituents, filenames=None):
+        """Returns a list of xarray datasets.
+
+        Args:
+            constituents (list[str]): List of the constiuent names to retrieve datasets for
+            filenames (Optional[list[list[str]]]): Paths to the NetCDF files, parallel with return value if provided.
+                Only needed by the FES2014 model currently.
+
+        Returns:
+            list[list[Dataset]]: The xarray Datasets for the requested constituents
+        """
         available = self.available_constituents()
         if any(const not in available for const in constituents):
             raise ValueError('Constituent not recognized.')
@@ -449,7 +537,10 @@ class ResourceManager(object):
                     paths.add(path) if os.path.exists(path) else missing.add(r)
                 rsrcs = missing
                 if not rsrcs and paths:
-                    self.datasets.append([xr.open_dataset(path) for path in paths])
+                    paths_list = list(paths)  # If the caller wants filenames, give them as parallel list with return.
+                    self.datasets.append([xr.open_dataset(path) for path in paths_list])
+                    if filenames is not None:
+                        filenames.append(paths_list)
                     continue
 
             resource_dir = os.path.join(config['data_dir'], self.model)
@@ -460,6 +551,9 @@ class ResourceManager(object):
                 paths.add(path)
 
             if paths:
-                self.datasets.append([xr.open_dataset(path) for path in paths])
+                paths_list = list(paths)
+                self.datasets.append([xr.open_dataset(path) for path in paths_list])
+                if filenames is not None:  # If the caller wants the filenames, give them as parallel list with return.
+                    filenames.append(paths_list)
 
         return self.datasets

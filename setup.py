@@ -1,5 +1,13 @@
+"""Build or install the harmonica package."""
+# 1. Standard python modules
 import os
+
+# 2. Third party modules
 from setuptools import setup
+
+# 3. Aquaveo modules
+
+# 4. Local modules
 
 
 # allow setup.py to be run from any path
@@ -7,12 +15,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
 install_requires = [
-    'argparse',
     'dask',
-    'pytides>=1.0.0',  # ERDC fork packaged by Aquaveo
     'netCDF4',
     'numpy',
     'pandas',
+    'pytides>=1.0.0',  # ERDC fork packaged by Aquaveo
     'toolz',
     'xarray',
     'xmsgrid>=6.0.0',
@@ -46,13 +53,13 @@ except Exception:
 setup(
     name='harmonica',
     version=version,
-    description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
-                "reconstruction and deconstruction.",
+    description='Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series '
+                'reconstruction and deconstruction.',
     long_description=open('README.md').read(),
-    long_description_content_type="text/markdown",
-    author="Kevin Winters",
+    long_description_content_type='text/markdown',
+    author='Kevin Winters',
     author_email='Kevin.D.Winters@erdc.dren.mil',
-    maintainer="Aquaveo LLC",
+    maintainer='Aquaveo LLC',
     url='https://github.com/aquaveo/harmonica',
     packages=['harmonica', 'harmonica.cli'],
     dependency_links=[
@@ -76,5 +83,5 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.10',
     ],
-    python_requires="!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
+    python_requires='>=3.10'
 )

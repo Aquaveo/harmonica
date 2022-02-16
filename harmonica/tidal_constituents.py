@@ -1,3 +1,11 @@
+"""Top-level interface for interacting with the tidal database models."""
+# 1. Standard python modules
+
+# 2. Third party modules
+
+# 3. Aquaveo modules
+
+# 4. Local modules
 from .adcirc_database import AdcircDB
 from .leprovost_database import LeProvostDB
 from .resource import ResourceManager
@@ -5,7 +13,7 @@ from .tpxo_database import TpxoDB
 
 
 class Constituents:
-    """Class for extracting tidal constituent data
+    """Class for extracting tidal constituent data.
 
     Attributes:
         _current_model (:obj:`tidal_database.TidalDB`): The tidal model currently being used for extraction
@@ -32,11 +40,16 @@ class Constituents:
 
     @data.setter
     def data(self, value):
-        """Set the underlying dataframe of the current model"""
+        """Set the underlying dataframe of the current model."""
         if self._current_model:
             self._current_model.data = value
 
     def change_model(self, new_model):
+        """Change the current tidal database model.
+
+        Args:
+            new_model (str): The model to switch to. See the constants defined in ResourceManager for valid values.
+        """
         new_model = new_model.lower()
         if self._current_model and self._current_model.model == new_model:
             return  # Already have the correct impl and resources for this model, nothing to do.
@@ -48,14 +61,11 @@ class Constituents:
         elif new_model in ResourceManager.ADCIRC_MODELS:
             self._current_model = AdcircDB()
         else:
-            supported_models = (
-                ", ".join(ResourceManager.TPXO_MODELS) + ", " +
-                ", ".join(ResourceManager.LEPROVOST_MODELS) + ", " +
-                ", ".join(ResourceManager.ADCIRC_MODELS)
-            )
-            raise ValueError("Model not supported: \'{}\'. Must be one of: {}.".format(
-                new_model, supported_models.strip()
-            ))
+            tpxo_models = ", ".join(ResourceManager.TPXO_MODELS) + ", "
+            leprovost_models = ", ".join(ResourceManager.LEPROVOST_MODELS) + ", "
+            adcirc_models = ", ".join(ResourceManager.ADCIRC_MODELS)
+            supported_models = tpxo_models + leprovost_models + adcirc_models
+            raise ValueError(f'Model not supported: "{new_model}". Must be one of: {supported_models.strip()}.')
 
     def get_components(self, locs, cons=None, positive_ph=False, model=None):
         """Abstract method to get amplitude, phase, and speed of specified constituents at specified point locations.
