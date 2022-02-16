@@ -38,13 +38,6 @@ class HarmonicaTests(unittest.TestCase):
         # Use internal Aquaveo data directory to test protected models.
         config['pre_existing_data_dir'] = WINDOWS_CI_TEST_DATA_DIR
 
-    @classmethod
-    def tearDownClass(cls):
-        """Runs after all the test cases, enable to snag files from test VMs."""
-        # DEBUG! Only uncomment this method to get files from CI machines that aggresively clean up
-        import time
-        time.sleep(30)  # Will hang for 30 secs after all test cases run.
-
     def _run_case(self, model):
         """Run a tidal extraction case for a model.
 
@@ -52,7 +45,7 @@ class HarmonicaTests(unittest.TestCase):
             model (str): Name of the model to test
         """
         model_data = self.extractor.get_components(self.LOCS, self.CONS, True, model)
-        with open(f'{model}.out', 'w') as f:
+        with open(f'{model}.out', 'w', newline='') as f:
             for pt in model_data.data:
                 f.write(f'{pt.sort_index().to_string()}\n\n')
         self.assertTrue(filecmp.cmp(f'{model}.base', f'{model}.out'))
@@ -60,8 +53,9 @@ class HarmonicaTests(unittest.TestCase):
     def test_nodal_factor(self):
         """Test extracting astronomical nodal factor data (not dependent on the tidal model)."""
         nodal_factors = self.extractor.get_nodal_factor(self.CONS, datetime.datetime(2018, 8, 30, 15))
-        with open('nodal_factor.out', 'w') as f:
+        with open('nodal_factor.out', 'w', newline='') as f:
             f.write(f'{nodal_factors.to_string()}\n\n')
+        self.assertTrue(filecmp.cmp('nodal_factor.base', 'nodal_factor.out'))
 
     def test_adcirc(self):
         """Test tidal extraction for the ADCIRC 2015 model."""
