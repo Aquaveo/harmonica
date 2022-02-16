@@ -15,6 +15,7 @@ Example:
         --datetime_format '%Y-%m-%d %H:%M' -C M2 S2 N2 K1
 """
 
+
 def config_parser(p, sub=False):
     # Subparser info
     if sub:
@@ -46,9 +47,9 @@ def config_parser(p, sub=False):
         '--columns',
         nargs='+',
         default=[0, 1],
-        help="Name or index of columns in signal file to extract times and water levels; multiple columns can be " \
-            "specified to combine and parse as a datetime; the last column specified is assumed to be water levels, " \
-            "default: '0 1'",
+        help="Name or index of columns in signal file to extract times and water levels; multiple columns can be "
+             "specified to combine and parse as a datetime; the last column specified is assumed to be water levels, "
+             "default: '0 1'",
         dest='dt_cols',
         metavar='COL',
     )

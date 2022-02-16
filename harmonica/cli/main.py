@@ -1,4 +1,3 @@
-from .. import __version__
 from .common import add_common_args
 from .main_constituents import config_parser as config_parser_constituents
 from .main_deconstruct import config_parser as config_parser_deconstruct
@@ -7,6 +6,7 @@ from .main_resources import config_parser as config_parser_resources
 from importlib import import_module
 import argparse
 import sys
+
 
 def main():
     p = argparse.ArgumentParser(

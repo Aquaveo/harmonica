@@ -1,3 +1,3 @@
-from harmonica import cli
+from harmonica.cli import main
 
-cli()
+main.main()

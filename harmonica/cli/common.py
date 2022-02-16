@@ -4,8 +4,9 @@ from argparse import _HelpAction
 from datetime import date
 import itertools
 
+
 def add_common_args(p):
-	# You must use the add_help=False argument to ArgumentParser or add_parser
+    # You must use the add_help=False argument to ArgumentParser or add_parser
     p.add_argument(
         '-h', '--help',
         action=_HelpAction,

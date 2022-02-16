@@ -30,6 +30,7 @@ build:
   script:
     - pip.exe install coverage
     - pip.exe install -e .
+    - net use \\\\f /user:aquaveo\\${F_DRIVE_USER} ${F_DRIVE_PASSWORD}
     - coverage run --omit=tests/*,harmonica/cli/*,harmonica/data/*,harmonica/examples/*,*__init__.py --source=harmonica setup.py test
     - coverage html -d coverage_html
     - coverage report --fail-under 10 -m --skip-covered
@@ -46,8 +47,8 @@ deployment:
   image: GLR-py310
   script:
     - pip.exe install devpi-client
-    - devpi use %DEVPI_URL%
-    - devpi login %DEVPI_USER% --password %DEVPI_PASS%
+    - devpi use ${DEVPI_URL}
+    - devpi login ${DEVPI_USER} --password ${DEVPI_PASS}
     - devpi upload --no-vcs --formats sdist
   only:
     - tags

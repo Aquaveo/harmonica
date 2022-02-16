@@ -10,6 +10,7 @@ Example:
     harmonica constituents 38.375789 -74.943915 -C M2 K1 -M tpxo8
 """
 
+
 def config_parser(p, sub=False):
     # Subparser info
     if sub:

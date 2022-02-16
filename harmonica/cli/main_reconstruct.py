@@ -73,7 +73,7 @@ def parse_args(args):
 def execute(args):
     times = pyTide._times(datetime.fromordinal(args.start_date.toordinal()), np.arange(args.length * 24., dtype=float))
     tide = Tide(model=args.model).reconstruct_tide(loc=[args.lat, args.lon], times=times, cons=args.cons,
-        positive_ph=args.positive_phase)
+                                                   positive_ph=args.positive_phase)
     out = tide.data.to_csv(args.output, sep='\t', header=True, index=False)
     if args.output is None:
         print(out)

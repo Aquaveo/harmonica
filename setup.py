@@ -36,14 +36,18 @@ entry_points = [
 ]
 
 
-version = '2.0.0'
+try:  # Use version_generator if available, but don't require it.
+    from version_generator import get_version_string
+    version = get_version_string(strict=False)
+except Exception:
+    version = '99.99.99'
 
 
 setup(
     name='harmonica',
     version=version,
     description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
-        "reconstruction and deconstruction.",
+                "reconstruction and deconstruction.",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     author="Kevin Winters",
