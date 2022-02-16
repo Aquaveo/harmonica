@@ -17,8 +17,4 @@ config = {
     'data_dir': os.path.join(os.getenv('APPDATA', os.path.dirname(os.path.dirname(__file__))), 'harmonica', 'data')
 }
 
-try:  # Use version_generator if available, but don't require it.
-    from version_generator import get_version_string
-    __version__ = get_version_string(strict=False)
-except Exception:
-    __version__ = '99.99.99'
+__version__ = '2.0.0rc2'

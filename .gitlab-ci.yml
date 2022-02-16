@@ -39,7 +39,7 @@ cache:
   variables:
     PIP_INDEX_URL: "https://public.aquapi.aquaveo.com/aquaveo/stable"
   script:
-    - pip.exe install coverage tox version-generator>=0.6.0 -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    - pip.exe install coverage tox -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
     - net use \\\\f /user:aquaveo\\${F_DRIVE_USER} ${F_DRIVE_PASSWORD}
     - tox --workdir .
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
@@ -54,7 +54,7 @@ deployment:
   stage: deploy
   image: GLR-py310
   script:
-    - pip.exe install devpi-client version-generator>=0.6.0 -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    - pip.exe install devpi-client -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
     - devpi use ${DEVPI_URL}
     - devpi login ${DEVPI_USER} --password ${DEVPI_PASS}
     - devpi upload --no-vcs --formats sdist

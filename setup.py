@@ -43,11 +43,7 @@ entry_points = [
 ]
 
 
-try:  # Use version_generator if available, but don't require it.
-    from version_generator import get_version_string
-    version = get_version_string(strict=False)
-except Exception:
-    version = '99.99.99'
+version = '2.0.0rc2'
 
 
 setup(
