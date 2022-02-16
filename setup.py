@@ -43,7 +43,7 @@ entry_points = [
 ]
 
 
-version = '2.0.0rc2'
+version = '2.0.1'
 
 
 setup(
