@@ -38,6 +38,13 @@ class HarmonicaTests(unittest.TestCase):
         # Use internal Aquaveo data directory to test protected models.
         config['pre_existing_data_dir'] = WINDOWS_CI_TEST_DATA_DIR
 
+    @classmethod
+    def tearDownClass(cls):
+        """Runs after all the test cases, enable to snag files from test VMs."""
+        # DEBUG! Only uncomment this method to get files from CI machines that aggresively clean up
+        import time
+        time.sleep(30)  # Will hang for 30 secs after all test cases run.
+
     def _run_case(self, model):
         """Run a tidal extraction case for a model.
 
