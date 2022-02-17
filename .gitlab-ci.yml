@@ -10,7 +10,6 @@ variables:
   GITHUB_ORG: "Aquaveo"
   GITHUB_REPO_NAME: "harmonica"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/pip-cache"
-  PYTHON: C:\\Python36
 
 cache:
   paths:
@@ -23,35 +22,46 @@ cache:
   script:
     - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"pending\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"Gitlab is processing the commit\", \"context\":\"ci/gitlab\"}"
 
-build:
+"Lint Package":
   stage: build
+  image: GLR-py310
+  script:
+    # Run python flake
+    - pip install tox flake8 flake8-docstrings flake8-bugbear flake8-import-order pep8-naming flake8-colors
+    - pip install -i https://aquapi.aquaveo.com/aquaveo/dev/+simple/ flake8-aquaveo
+    - flake8 --exclude .tox,.git,__pycache__,tests/files/*,docs/source/conf.py,build,dist,tests/fixtures/*,*.pyc,*.egg-info,.cache,.eggs --ignore=D200,D212 --max-line-length=120 --docstring-convention google --isolated --import-order-style=appnexus --application-import-names=harmonica --application-package-names=xms --count --statistics .
+  tags:
+    - WinVM
+
+"Build Package":
+  stage: build
+  image: GLR-py310
   variables:
     PIP_INDEX_URL: "https://public.aquapi.aquaveo.com/aquaveo/stable"
   script:
-    - pip.exe install coverage
-    - pip.exe install -e .
-    - coverage run --omit=tests/*,harmonica/cli/*,harmonica/data/*,harmonica/examples/*,*__init__.py --source=harmonica setup.py test
-    - coverage html -d coverage_html
-    - coverage report --fail-under 10 -m --skip-covered
+    - pip.exe install coverage tox -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    - net use \\\\f /user:aquaveo\\${F_DRIVE_USER} ${F_DRIVE_PASSWORD}
+    - tox --workdir .
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
   artifacts:
     paths:
       - coverage_html
     expire_in: 1 week
   tags:
-    - Windows
+    - WinVM
 
 deployment:
   stage: deploy
+  image: GLR-py310
   script:
-    - pip.exe install devpi-client
-    - devpi use %DEVPI_URL%
-    - devpi login %DEVPI_USER% --password %DEVPI_PASS%
+    - pip.exe install devpi-client -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    - devpi use ${DEVPI_URL}
+    - devpi login ${DEVPI_USER} --password ${DEVPI_PASS}
     - devpi upload --no-vcs --formats sdist
   only:
     - tags
   tags:
-    - Windows
+    - WinVM
 
 "Send Success Status":
   stage: "Set Final Github Status"

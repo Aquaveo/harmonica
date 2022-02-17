@@ -1,5 +1,13 @@
+"""Build or install the harmonica package."""
+# 1. Standard python modules
 import os
+
+# 2. Third party modules
 from setuptools import setup
+
+# 3. Aquaveo modules
+
+# 4. Local modules
 
 
 # allow setup.py to be run from any path
@@ -7,15 +15,14 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
 install_requires = [
-    'argparse',
     'dask',
-    'pytides>=0.0.4',  # ERDC fork packaged by Aquaveo
     'netCDF4',
     'numpy',
     'pandas',
+    'pytides>=1.0.0',  # ERDC fork packaged by Aquaveo
     'toolz',
     'xarray',
-    'xmsgrid>=4.2.0',
+    'xmsgrid>=6.0.0',
 ]
 
 extras_require = {
@@ -36,19 +43,19 @@ entry_points = [
 ]
 
 
-version = '1.0.1'
+version = '2.0.1'
 
 
 setup(
     name='harmonica',
     version=version,
-    description="Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series " \
-        "reconstruction and deconstruction.",
+    description='Worldwide amplitude, phase, and speed for standard tidal constituents and tidal time series '
+                'reconstruction and deconstruction.',
     long_description=open('README.md').read(),
-    long_description_content_type="text/markdown",
-    author="Kevin Winters",
+    long_description_content_type='text/markdown',
+    author='Kevin Winters',
     author_email='Kevin.D.Winters@erdc.dren.mil',
-    maintainer="Aquaveo LLC",
+    maintainer='Aquaveo LLC',
     url='https://github.com/aquaveo/harmonica',
     packages=['harmonica', 'harmonica.cli'],
     dependency_links=[
@@ -70,8 +77,7 @@ setup(
         'Natural Language :: English',
         'Topic :: Scientific/Engineering'
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
     ],
-    python_requires="!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
+    python_requires='>=3.10'
 )

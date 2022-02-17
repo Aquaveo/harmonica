@@ -1,1 +1,1 @@
-
+"""Initialize the tests module."""

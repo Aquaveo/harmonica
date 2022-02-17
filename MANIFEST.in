@@ -2,5 +2,5 @@ include LICENSE.txt
 include MANIFEST.in
 include README.md
 include setup.py
-include harmonica/*.py
-include harmonica/cli/*.py
+recursive-include harmonica *.py
+prune tests

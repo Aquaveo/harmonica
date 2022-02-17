@@ -1,11 +1,15 @@
-#! python3
-
+"""Class for managing the ADCIRC 2015 tidal database model."""
+# 1. Standard python modules
 import math
 
+# 2. Third party modules
 import numpy
 import pandas as pd
+
+# 3. Aquaveo modules
 from xms.grid.geometry.tri_search import TriSearch
 
+# 4. Local modules
 from .resource import ResourceManager
 from .tidal_database import convert_coords, get_complex_components, NOAA_SPEEDS, TidalDB
 
@@ -14,16 +18,13 @@ DEFAULT_ADCIRC_RESOURCE = 'adcirc2015'
 
 
 class AdcircDB(TidalDB):
-    """The class for extracting tidal data, specifically amplitude and phases, from an ADCIRC database.
-
-    """
+    """The class for extracting tidal data, specifically amplitude and phases, from an ADCIRC database."""
     def __init__(self, model=DEFAULT_ADCIRC_RESOURCE):
         """Constructor for the ADCIRC tidal database extractor.
 
         Args:
             model (:obj:`str`, optional): Name of the ADCIRC tidal database version. Currently defaults to the only
                 supported release, 'adcirc2015'. Expand resource.adcirc_models for future versions.
-
         """
         model = model.lower()
         if model not in ResourceManager.ADCIRC_MODELS:
@@ -48,7 +49,6 @@ class AdcircDB(TidalDB):
                 amplitude (meters), phase (degrees) and speed (degrees/hour, UTC/GMT). The list is parallel with locs,
                 where each element in the return list is the constituent data for the corresponding element in locs.
                 Note that function uses fluent interface pattern.
-
         """
         # pre-allocate the return value
         if not cons:
@@ -78,8 +78,8 @@ class AdcircDB(TidalDB):
             tri_idx = tri_search.triangle_containing_point(pt_flip)
             if tri_idx != -1:
                 pt_1 = int(tri_list[tri_idx])
-                pt_2 = int(tri_list[tri_idx+1])
-                pt_3 = int(tri_list[tri_idx+2])
+                pt_2 = int(tri_list[tri_idx + 1])
+                pt_3 = int(tri_list[tri_idx + 2])
                 x1, y1, z1 = mesh_pts[pt_1]
                 x2, y2, z2 = mesh_pts[pt_2]
                 x3, y3, z3 = mesh_pts[pt_3]
@@ -110,19 +110,11 @@ class AdcircDB(TidalDB):
 
                 # Get the real and imaginary components from the amplitude and phases in the file. It
                 # would be better if these values were stored in the file like TPXO.
-                complex_components = get_complex_components(amps, phases)
+                components = get_complex_components(amps, phases)
 
                 # Perform area weighted interpolation
-                ctr = (
-                    complex_components[0][0] * weights[0] +
-                    complex_components[1][0] * weights[1] +
-                    complex_components[2][0] * weights[2]
-                )
-                cti = (
-                    complex_components[0][1] * weights[0] +
-                    complex_components[1][1] * weights[1] +
-                    complex_components[2][1] * weights[2]
-                )
+                ctr = components[0][0] * weights[0] + components[1][0] * weights[1] + components[2][0] * weights[2]
+                cti = components[0][1] * weights[0] + components[1][1] * weights[1] + components[2][1] * weights[2]
                 new_amp = math.sqrt(ctr * ctr + cti * cti)
 
                 # Compute interpolated phase
