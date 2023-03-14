@@ -55,7 +55,7 @@ class TpxoDB(TidalDB):
 
         # if no constituents were requested, return all available
         if cons is None or not len(cons):
-            cons = self.resources.available_constituents()
+            cons = list(self.resources.available_constituents())
         # open the netcdf database(s)
         single_file = self.model == 'tpxo9'
         for d in self.resources.get_datasets(cons):

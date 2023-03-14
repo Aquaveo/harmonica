@@ -52,7 +52,7 @@ class AdcircDB(TidalDB):
         """
         # pre-allocate the return value
         if not cons:
-            cons = self.resources.available_constituents()  # Get all constituents by default
+            cons = list(self.resources.available_constituents())  # Get all constituents by default
         else:
             cons = [con.upper() for con in cons]
 
