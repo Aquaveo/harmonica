@@ -54,10 +54,9 @@ class LeProvostDB(TidalDB):
         """
         # If no constituents specified, extract all valid constituents.
         if not cons:
-            cons = self.resources.available_constituents()
+            cons = list(self.resources.available_constituents())
         else:  # Be case-insensitive
             cons = [con.upper() for con in cons]
-        cons.sort()  # Request constituent resources in alphabetical order
 
         # Make sure point locations are valid lat/lon
         locs = convert_coords(locs, self.model == "fes2014")
