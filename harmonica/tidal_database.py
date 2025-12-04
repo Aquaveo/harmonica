@@ -1,7 +1,7 @@
 """Base class for the tidal database models."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
 import math
 
 # 2. Third party modules

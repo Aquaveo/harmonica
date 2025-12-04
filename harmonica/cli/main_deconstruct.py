@@ -1,5 +1,6 @@
 """The deconstruct CLI command."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 import argparse
 import sys
 

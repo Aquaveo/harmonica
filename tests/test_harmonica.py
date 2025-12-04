@@ -1,5 +1,6 @@
 """Tests the supported tidal database models."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 import datetime
 import filecmp
 import os

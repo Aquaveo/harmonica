@@ -1,5 +1,6 @@
 """Top-level interface for interacting with the tidal database models."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 
 # 2. Third party modules
 

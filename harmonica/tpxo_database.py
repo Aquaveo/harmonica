@@ -1,5 +1,6 @@
 """Class to manage the TPXO tidal database models."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 from bisect import bisect
 
 # 2. Third party modules
