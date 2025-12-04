@@ -11,13 +11,13 @@ variables:
 
 mirror:
   stage: mirror
-  image: centos:7
+  image: ubuntu:latest
   script:
+    # Install needed tools
+    - apt update && apt install -y curl openssh-client git
+
     # Notify GitHub that we are working on mirroring
     - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"pending\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"Gitlab is working to mirror the commit\", \"context\":\"ci/gitlab\"}"
-      
-    # Install needed tools
-    - yum -y install openssh-clients git
     
     # Set up SSH
     - eval $(ssh-agent -s)
