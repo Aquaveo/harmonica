@@ -1,5 +1,6 @@
 """Entry point for the CLI tools."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 
 # 2. Third party modules
 

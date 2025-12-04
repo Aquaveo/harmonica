@@ -1,5 +1,6 @@
 """Resource managers for the tidal database models supported in harmonica."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 from abc import ABCMeta, abstractmethod
 import os
 import shutil

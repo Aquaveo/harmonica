@@ -29,7 +29,7 @@ cache:
     # Run python flake
     - pip install tox flake8 flake8-docstrings flake8-bugbear flake8-import-order pep8-naming flake8-colors
     - pip install -i https://aquapi.aquaveo.com/aquaveo/dev/+simple/ flake8-aquaveo
-    - flake8 --exclude .tox,.git,__pycache__,tests/files/*,docs/source/conf.py,build,dist,tests/fixtures/*,*.pyc,*.egg-info,.cache,.eggs --ignore=D200,D212 --max-line-length=120 --docstring-convention google --isolated --import-order-style=appnexus --application-import-names=harmonica --application-package-names=xms --count --statistics .
+    - flake8 --exclude .tox,.git,__pycache__,tests/files/*,doc/source/conf.py,build,dist,tests/fixtures/*,*.pyc,*.egg-info,.cache,.eggs --ignore=D200,D212 --max-line-length=120 --docstring-convention google --isolated --import-order-style=appnexus --application-import-names=harmonica --application-package-names=xms --count --statistics .
   tags:
     - WinVM
 

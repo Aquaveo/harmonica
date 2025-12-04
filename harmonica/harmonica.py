@@ -1,5 +1,6 @@
 """Class to represent tides in harmonica."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 from datetime import datetime
 
 # 2. Third party modules

@@ -1,5 +1,6 @@
 """This module contains the tidal database extractor for the LeProvost tidal database."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 import math
 import os
 

@@ -1,5 +1,6 @@
 """Class for managing the ADCIRC 2015 tidal database model."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 import math
 
 # 2. Third party modules

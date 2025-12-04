@@ -1,5 +1,5 @@
 """Build or install the harmonica package."""
-# 1. Standard python modules
+# 1. Standard Python modules
 import os
 
 # 2. Third party modules
@@ -43,7 +43,7 @@ entry_points = [
 ]
 
 
-version = '2.0.2'
+version = '2.1.0'
 
 
 setup(

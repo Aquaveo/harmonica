@@ -1,5 +1,6 @@
 """The helper functions shared by all the CLI commands."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 from argparse import _HelpAction
 
 # 2. Third party modules

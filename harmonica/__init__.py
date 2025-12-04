@@ -1,5 +1,6 @@
 """Initialize the module."""
-# 1. Standard python modules
+
+# 1. Standard Python modules
 import os
 
 # 2. Third party modules
