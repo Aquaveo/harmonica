@@ -29,7 +29,7 @@ class HarmonicaTests(unittest.TestCase):
         (46.18, -124.38),
     ]
     CONS = ['M2', 'S2', 'N2', 'K1']
-    # These are all the constituents that are supported by tide_fac.f in the order it outputs them
+    # These are all the constituents that are supported by tide_fac.f in the order it outputs them.
     EQ_ARG_CONS = [
         'M2', 'S2', 'N2', 'K1', 'M4', 'O1', 'M6', 'MK3', 'S4', 'MN4', 'NU2', 'S6', 'MU2', '2N2', 'OO1', 'LAM2', 'S1',
         'M1', 'J1', 'MM', 'SSA', 'SA', 'MSF', 'MF', 'RHO', 'Q1', 'T2', 'R2', '2Q1', 'P1', '2SM2', 'M3', 'L2', '2MK3',
