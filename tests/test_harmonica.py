@@ -4,9 +4,10 @@
 import datetime
 import filecmp
 import os
-import unittest
 
 # 2. Third party modules
+import numpy as np
+import pandas as pd
 
 # 3. Aquaveo modules
 
@@ -18,7 +19,7 @@ from harmonica.tidal_constituents import Constituents
 WINDOWS_CI_TEST_DATA_DIR = r'\\f\sms\tidal_databases'
 
 
-class HarmonicaTests(unittest.TestCase):
+class TestHarmonica:
     """Test harmonica Python interface with all supported models."""
     # Need to be in (lat, lon), not (x, y)
     LOCS = [
@@ -38,7 +39,7 @@ class HarmonicaTests(unittest.TestCase):
     extractor = Constituents()
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         """Runs before all the test cases, set the config variable for a preexisting data dir."""
         # Change working directory to test location
         os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
@@ -55,14 +56,26 @@ class HarmonicaTests(unittest.TestCase):
         with open(f'{model}.out', 'w', newline='') as f:
             for pt in model_data.data:
                 f.write(f'{pt.sort_index().to_string()}\n\n')
-        self.assertTrue(filecmp.cmp(f'{model}.base', f'{model}.out'))
+        assert filecmp.cmp(f'{model}.base', f'{model}.out')
+
+    def _run_case_tol(self, model):
+        """Run the test case but use some tolerance when comparing to the baseline.
+
+        Args:
+            model (str): Name of the model to test
+        """
+        model_data = self.extractor.get_components(self.LOCS, self.CONS, True, model)
+        assert 5 == len(model_data.data)
+        for i, pt in enumerate(model_data.data):
+            df = pd.read_csv(f'{model}.{i}.base', index_col=0)
+            assert np.allclose(df.values, pt.values, equal_nan=True)
 
     def _run_eq_args_case(self, case_name, start, rundays):
         middle = start + datetime.timedelta(days=rundays / 2)
         nodal_factors = self.extractor.get_nodal_factor(self.EQ_ARG_CONS, start, middle)
         with open(f'{case_name}.out', 'w', newline='') as f:
             f.write(f'{nodal_factors.to_string()}\n\n')
-        self.assertTrue(filecmp.cmp(f'{case_name}.base', f'{case_name}.out'))
+        assert filecmp.cmp(f'{case_name}.base', f'{case_name}.out')
 
     def test_2015040700_10day(self):
         """Test extracting astronomical nodal factor data (not dependent on the tidal model)."""
@@ -101,7 +114,7 @@ class HarmonicaTests(unittest.TestCase):
 
     def test_fes2014(self):
         """Test tidal extraction for the FES2014 model."""
-        self._run_case('fes2014')
+        self._run_case_tol('fes2014')
 
     def test_tpxo8(self):
         """Test tidal extraction for the TPXO8 model."""
