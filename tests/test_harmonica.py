@@ -123,3 +123,17 @@ class TestHarmonica:
     def test_tpxo9(self):
         """Test tidal extraction for the TPXO9 model."""
         self._run_case('tpxo9')
+
+    def test_resource_is_consolidated_file_flags(self):
+        """Each TPXO resource declares whether its data is consolidated into one file."""
+        from harmonica.resource import (
+            ResourceManager, Tpxo8Resources, Tpxo9Resources,
+        )
+        assert Tpxo8Resources().is_consolidated_file is False
+        assert Tpxo9Resources().is_consolidated_file is True
+
+    def test_resource_data_dir_name_defaults_to_none(self):
+        """data_dir_name defaults to None so existing models keep using self.model as dir."""
+        from harmonica.resource import Tpxo8Resources, Tpxo9Resources
+        assert getattr(Tpxo8Resources(), 'data_dir_name', None) is None
+        assert getattr(Tpxo9Resources(), 'data_dir_name', None) is None

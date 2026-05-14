@@ -21,6 +21,13 @@ MAX_NUM_CONS = 37  # Maximum number of constituents in all available models
 
 class Resources(object):
     """Abstract base class for model resources."""
+
+    # Default: data is one file per constituent. Override to True for single-file models.
+    is_consolidated_file = False
+    # Default: data subdirectory under pre_existing_data_dir matches the model name.
+    # Override (e.g. 'tpxo9_atlas_v5') when the on-disk dir is version-suffixed.
+    data_dir_name = None
+
     def __init__(self):
         """Base constructor."""
         pass
@@ -143,6 +150,7 @@ class Tpxo9Resources(Resources):
     """TPXO9 resources."""
     TPXO9_CONS = {'2N2', 'K1', 'K2', 'M2', 'M4', 'MF', 'MM', 'MN4', 'MS4', 'N2', 'O1', 'P1', 'Q1', 'S1', 'S2'}
     DEFAULT_RESOURCE_FILE = 'tpxo9_netcdf/h_tpxo9.v1.nc'
+    is_consolidated_file = True
 
     def __init__(self):
         """Constructor."""
@@ -496,7 +504,8 @@ class ResourceManager(object):
             self.model_atts.available_constituents()
         )
         if not resource_dir:
-            resource_dir = os.path.join(config['data_dir'], self.model)
+            data_dir = self.model_atts.data_dir_name or self.model
+            resource_dir = os.path.join(config['data_dir'], data_dir)
         for r in resources:
             path = os.path.join(resource_dir, r)
             if not os.path.exists(path):
@@ -505,7 +514,8 @@ class ResourceManager(object):
 
     def remove_model(self):
         """Remove all of the model's resources."""
-        resource_dir = os.path.join(config['data_dir'], self.model)
+        data_dir = self.model_atts.data_dir_name or self.model
+        resource_dir = os.path.join(config['data_dir'], data_dir)
         if os.path.exists(resource_dir):
             import shutil
 
@@ -533,8 +543,9 @@ class ResourceManager(object):
             paths = set()
             if config['pre_existing_data_dir']:
                 missing = set()
+                data_dir = self.model_atts.data_dir_name or self.model
                 for r in rsrcs:
-                    path = os.path.join(config['pre_existing_data_dir'], self.model, r)
+                    path = os.path.join(config['pre_existing_data_dir'], data_dir, r)
                     paths.add(path) if os.path.exists(path) else missing.add(r)
                 rsrcs = missing
                 if not rsrcs and paths:
@@ -544,7 +555,8 @@ class ResourceManager(object):
                         filenames.append(paths_list)
                     continue
 
-            resource_dir = os.path.join(config['data_dir'], self.model)
+            data_dir = self.model_atts.data_dir_name or self.model
+            resource_dir = os.path.join(config['data_dir'], data_dir)
             for r in rsrcs:
                 path = os.path.join(resource_dir, r)
                 if not os.path.exists(path):
