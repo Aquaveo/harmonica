@@ -156,3 +156,15 @@ class TestHarmonica:
         # Backward compat: existing model without data_dir_name still uses the raw model name
         with patch('harmonica.resource.os.path.isdir', return_value=False):
             assert ResourceManager.data_dir_exists('tpxo8') is False
+
+    def test_loader_dispatches_on_is_consolidated_file(self):
+        """The TPXO loader chooses its file path based on resource attribute, not model name."""
+        from harmonica.tidal_constituents import Constituents
+        # The legacy tpxo9 model is consolidated and must still resolve correctly.
+        c = Constituents()
+        df_list = c.get_components(self.LOCS, self.CONS, True, 'tpxo9')
+        assert len(df_list.data) == len(self.LOCS)
+        # TPXO8 is per-constituent and must continue to work too.
+        c2 = Constituents()
+        df_list2 = c2.get_components(self.LOCS, self.CONS, True, 'tpxo8')
+        assert len(df_list2.data) == len(self.LOCS)

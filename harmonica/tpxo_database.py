@@ -58,7 +58,7 @@ class TpxoDB(TidalDB):
         if cons is None or not len(cons):
             cons = list(self.resources.available_constituents())
         # open the netcdf database(s)
-        single_file = self.model == 'tpxo9'
+        single_file = self.resources.model_atts.is_consolidated_file
         for d in self.resources.get_datasets(cons):
             for dset in d:
                 # remove unnecessary data array dimensions if present (e.g. tpxo9)
