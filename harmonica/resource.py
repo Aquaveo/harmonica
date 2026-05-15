@@ -195,6 +195,58 @@ class Tpxo9Resources(Resources):
             return None
 
 
+class Tpxo9AtlasResources(Resources):
+    """TPXO9-atlas-v5 resources (1/30 degree global atlas, per-constituent files)."""
+    TPXO9_ATLAS_CONS = {
+        '2N2': 'h_2n2_tpxo9_atlas_30_v5.nc',
+        'K1': 'h_k1_tpxo9_atlas_30_v5.nc',
+        'K2': 'h_k2_tpxo9_atlas_30_v5.nc',
+        'M2': 'h_m2_tpxo9_atlas_30_v5.nc',
+        'M4': 'h_m4_tpxo9_atlas_30_v5.nc',
+        'MF': 'h_mf_tpxo9_atlas_30_v5.nc',
+        'MM': 'h_mm_tpxo9_atlas_30_v5.nc',
+        'MN4': 'h_mn4_tpxo9_atlas_30_v5.nc',
+        'MS4': 'h_ms4_tpxo9_atlas_30_v5.nc',
+        'N2': 'h_n2_tpxo9_atlas_30_v5.nc',
+        'O1': 'h_o1_tpxo9_atlas_30_v5.nc',
+        'P1': 'h_p1_tpxo9_atlas_30_v5.nc',
+        'Q1': 'h_q1_tpxo9_atlas_30_v5.nc',
+        'S1': 'h_s1_tpxo9_atlas_30_v5.nc',
+        'S2': 'h_s2_tpxo9_atlas_30_v5.nc',
+    }
+    is_consolidated_file = False
+    data_dir_name = 'tpxo9_atlas_v5'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (TPXO9-atlas-v5 is licensed; registration required, no free distribution)."""
+        return {
+            'url': None,
+            'archive': None,
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (mm storage, scale to m)."""
+        return {
+            'units_multiplier': 0.001,
+        }
+
+    def available_constituents(self):
+        """The 15 constituents in TPXO9-atlas-v5."""
+        return self.TPXO9_ATLAS_CONS.keys()
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """Map constituent name to per-con filename, or None if unsupported."""
+        return self.TPXO9_ATLAS_CONS.get(con.upper())
+
+
 class LeProvostResources(Resources):
     """LeProvost resources."""
     LEPROVOST_CONS = {'K1', 'K2', 'M2', 'N2', 'O1', 'P1', 'Q1', 'S2', 'NU2', 'MU2', '2N2', 'T2', 'L2'}
@@ -385,11 +437,12 @@ class ResourceManager(object):
     RESOURCES = {
         'tpxo8': Tpxo8Resources(),
         'tpxo9': Tpxo9Resources(),
+        'tpxo9_atlas': Tpxo9AtlasResources(),
         'leprovost': LeProvostResources(),
         'fes2014': FES2014Resources(),
         'adcirc2015': Adcirc2015Resources(),
     }
-    TPXO_MODELS = {'tpxo8', 'tpxo9'}
+    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas'}
     LEPROVOST_MODELS = {'fes2014', 'leprovost'}
     ADCIRC_MODELS = {'adcirc2015'}
     DEFAULT_RESOURCE = 'tpxo9'

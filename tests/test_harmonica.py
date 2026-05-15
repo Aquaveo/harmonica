@@ -168,3 +168,20 @@ class TestHarmonica:
         c2 = Constituents()
         df_list2 = c2.get_components(self.LOCS, self.CONS, True, 'tpxo8')
         assert len(df_list2.data) == len(self.LOCS)
+
+    def test_tpxo9_atlas_resource_class(self):
+        """Tpxo9AtlasResources has the 15 expected constituents and per-con filenames."""
+        from harmonica.resource import ResourceManager, Tpxo9AtlasResources
+        r = Tpxo9AtlasResources()
+        cons = set(r.available_constituents())
+        expected = {'2N2', 'K1', 'K2', 'M2', 'M4', 'MF', 'MM', 'MN4', 'MS4', 'N2', 'O1', 'P1', 'Q1', 'S1', 'S2'}
+        assert cons == expected
+        assert r.is_consolidated_file is False
+        assert r.data_dir_name == 'tpxo9_atlas_v5'
+        assert r.dataset_attributes()['units_multiplier'] == 0.001
+        assert r.constituent_resource('M2') == 'h_m2_tpxo9_atlas_30_v5.nc'
+        assert r.constituent_resource('2N2') == 'h_2n2_tpxo9_atlas_30_v5.nc'
+        assert r.constituent_resource('UNKNOWN') is None
+        # Registry membership
+        assert 'tpxo9_atlas' in ResourceManager.RESOURCES
+        assert 'tpxo9_atlas' in ResourceManager.TPXO_MODELS
