@@ -236,7 +236,7 @@ class Tpxo9AtlasResources(Resources):
 
     def available_constituents(self):
         """The 15 constituents in TPXO9-atlas-v5."""
-        return self.TPXO9_ATLAS_CONS.keys()
+        return list(self.TPXO9_ATLAS_CONS.keys())
 
     def constituent_groups(self):
         """Single uniform-resolution group."""
