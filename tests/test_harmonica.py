@@ -222,3 +222,10 @@ class TestHarmonica:
         assert r.constituent_resource('UNKNOWN') is None
         assert 'tpxo10_atlas' in ResourceManager.RESOURCES
         assert 'tpxo10_atlas' in ResourceManager.TPXO_MODELS
+
+    def test_default_resource_is_tpxo10_atlas(self):
+        """harmonica's default tidal model is now TPXO10-atlas (was TPXO9)."""
+        from harmonica.resource import ResourceManager
+        from harmonica.tpxo_database import DEFAULT_TPXO_RESOURCE
+        assert ResourceManager.DEFAULT_RESOURCE == 'tpxo10_atlas'
+        assert DEFAULT_TPXO_RESOURCE == 'tpxo10_atlas'

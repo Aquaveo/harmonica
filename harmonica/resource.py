@@ -542,7 +542,7 @@ class ResourceManager(object):
     TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10', 'tpxo10_atlas'}
     LEPROVOST_MODELS = {'fes2014', 'leprovost'}
     ADCIRC_MODELS = {'adcirc2015'}
-    DEFAULT_RESOURCE = 'tpxo9'
+    DEFAULT_RESOURCE = 'tpxo10_atlas'  # was 'tpxo9'
 
     def __init__(self, model=DEFAULT_RESOURCE):
         """Constructor.

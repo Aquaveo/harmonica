@@ -14,7 +14,7 @@ from .resource import ResourceManager
 from .tidal_database import NOAA_SPEEDS, TidalDB
 
 
-DEFAULT_TPXO_RESOURCE = 'tpxo9'
+DEFAULT_TPXO_RESOURCE = 'tpxo10_atlas'  # was 'tpxo9'
 
 
 class TpxoDB(TidalDB):
