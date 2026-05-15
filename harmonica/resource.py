@@ -265,8 +265,8 @@ class Tpxo10Resources(Resources):
     def resource_attributes(self):
         """Disabled (TPXO10v2 is licensed; registration required, no free distribution)."""
         return {
-            'url': None,
-            'archive': None,
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO10v2 as a plain directory; no archive wrapper.
         }
 
     def dataset_attributes(self):
