@@ -23,6 +23,7 @@ class Resources(object):
     """Abstract base class for model resources."""
 
     # Default: data is one file per constituent. Override to True for single-file models.
+    # Consumed by TpxoDB.get_components to dispatch between the per-con and consolidated code paths.
     is_consolidated_file = False
     # Default: data subdirectory under pre_existing_data_dir matches the model name.
     # Override (e.g. 'tpxo9_atlas_v5') when the on-disk dir is version-suffixed.
@@ -422,9 +423,11 @@ class ResourceManager(object):
         Returns:
             bool: True if the model's data folder exists in either location.
         """
-        if os.path.isdir(os.path.join(config['data_dir'], model)):
+        resource = ResourceManager.RESOURCES.get(model)
+        data_dir = (resource.data_dir_name if resource is not None else None) or model
+        if os.path.isdir(os.path.join(config['data_dir'], data_dir)):
             return True  # Exists in the default %APPDATA% folder
-        if os.path.isdir(os.path.join(config['pre_existing_data_dir'], model)):
+        if os.path.isdir(os.path.join(config['pre_existing_data_dir'], data_dir)):
             return True  # Exists in the user configurable folder
         return False
 

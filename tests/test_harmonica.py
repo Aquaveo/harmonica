@@ -4,6 +4,7 @@
 import datetime
 import filecmp
 import os
+from unittest.mock import patch
 
 # 2. Third party modules
 import numpy as np
@@ -126,9 +127,7 @@ class TestHarmonica:
 
     def test_resource_is_consolidated_file_flags(self):
         """Each TPXO resource declares whether its data is consolidated into one file."""
-        from harmonica.resource import (
-            ResourceManager, Tpxo8Resources, Tpxo9Resources,
-        )
+        from harmonica.resource import Tpxo8Resources, Tpxo9Resources
         assert Tpxo8Resources().is_consolidated_file is False
         assert Tpxo9Resources().is_consolidated_file is True
 
@@ -137,3 +136,23 @@ class TestHarmonica:
         from harmonica.resource import Tpxo8Resources, Tpxo9Resources
         assert getattr(Tpxo8Resources(), 'data_dir_name', None) is None
         assert getattr(Tpxo9Resources(), 'data_dir_name', None) is None
+
+    def test_data_dir_exists_honors_data_dir_name(self):
+        """data_dir_exists looks under data_dir_name when set, falls back to model name otherwise."""
+        from harmonica.resource import ResourceManager, Tpxo8Resources
+        # Stub a resource class with a custom data_dir_name and patch it into RESOURCES
+        class FakeResource(Tpxo8Resources):
+            data_dir_name = 'fake_versioned_dir'
+        fake_model = '_fake_test_model_'
+        with patch.dict(ResourceManager.RESOURCES, {fake_model: FakeResource()}):
+            # Patch isdir so only the 'fake_versioned_dir' path returns True
+            def isdir_predicate(path):
+                return path.endswith(os.sep + 'fake_versioned_dir')
+            with patch('harmonica.resource.os.path.isdir', side_effect=isdir_predicate):
+                assert ResourceManager.data_dir_exists(fake_model) is True
+            # And when the dir isn't there, returns False
+            with patch('harmonica.resource.os.path.isdir', return_value=False):
+                assert ResourceManager.data_dir_exists(fake_model) is False
+        # Backward compat: existing model without data_dir_name still uses the raw model name
+        with patch('harmonica.resource.os.path.isdir', return_value=False):
+            assert ResourceManager.data_dir_exists('tpxo8') is False
