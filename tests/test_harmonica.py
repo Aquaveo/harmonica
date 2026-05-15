@@ -125,6 +125,10 @@ class TestHarmonica:
         """Test tidal extraction for the TPXO9 model."""
         self._run_case('tpxo9')
 
+    def test_tpxo9_atlas(self):
+        """Test tidal extraction for the TPXO9-atlas-v5 model."""
+        self._run_case('tpxo9_atlas')
+
     def test_resource_is_consolidated_file_flags(self):
         """Each TPXO resource declares whether its data is consolidated into one file."""
         from harmonica.resource import Tpxo8Resources, Tpxo9Resources
