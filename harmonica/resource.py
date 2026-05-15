@@ -224,8 +224,8 @@ class Tpxo9AtlasResources(Resources):
     def resource_attributes(self):
         """Disabled (TPXO9-atlas-v5 is licensed; registration required, no free distribution)."""
         return {
-            'url': None,
-            'archive': None,
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO9-atlas-v5 as a plain directory; no archive wrapper.
         }
 
     def dataset_attributes(self):
