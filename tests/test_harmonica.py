@@ -185,3 +185,24 @@ class TestHarmonica:
         # Registry membership
         assert 'tpxo9_atlas' in ResourceManager.RESOURCES
         assert 'tpxo9_atlas' in ResourceManager.TPXO_MODELS
+
+    def test_tpxo10_resource_class(self):
+        """Tpxo10Resources has 25 constituents in a single consolidated file."""
+        from harmonica.resource import ResourceManager, Tpxo10Resources
+        r = Tpxo10Resources()
+        cons = set(r.available_constituents())
+        expected = {
+            'M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'P1', 'Q1', 'MM', 'MF',
+            'MSF', 'M4', 'MN4', 'MS4', '2N2', 'S1', '2Q1', 'J1', 'L2', 'M3',
+            'MU2', 'NU2', 'OO1', 'T2', 'M1',
+        }
+        assert cons == expected
+        assert r.is_consolidated_file is True
+        assert r.data_dir_name == 'tpxo10v2'
+        assert r.dataset_attributes()['units_multiplier'] == 1.0
+        # Consolidated: every supported con maps to the same single file.
+        assert r.constituent_resource('M2') == 'h_tpxo10.v2.nc'
+        assert r.constituent_resource('M1') == 'h_tpxo10.v2.nc'
+        assert r.constituent_resource('UNKNOWN') is None
+        assert 'tpxo10' in ResourceManager.RESOURCES
+        assert 'tpxo10' in ResourceManager.TPXO_MODELS

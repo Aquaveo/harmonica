@@ -247,6 +247,49 @@ class Tpxo9AtlasResources(Resources):
         return self.TPXO9_ATLAS_CONS.get(con.upper())
 
 
+class Tpxo10Resources(Resources):
+    """TPXO10v2 resources (1/6 degree global, consolidated single-file layout)."""
+    TPXO10_CONS = {
+        'M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'P1', 'Q1', 'MM', 'MF',
+        'MSF', 'M4', 'MN4', 'MS4', '2N2', 'S1', '2Q1', 'J1', 'L2', 'M3',
+        'MU2', 'NU2', 'OO1', 'T2', 'M1',
+    }
+    DEFAULT_RESOURCE_FILE = 'h_tpxo10.v2.nc'
+    is_consolidated_file = True
+    data_dir_name = 'tpxo10v2'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (TPXO10v2 is licensed; registration required, no free distribution)."""
+        return {
+            'url': None,
+            'archive': None,
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (m storage, no scaling)."""
+        return {
+            'units_multiplier': 1.0,
+        }
+
+    def available_constituents(self):
+        """The 25 constituents in TPXO10v2."""
+        return self.TPXO10_CONS
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """All supported cons live in the consolidated file."""
+        if con.upper() in self.TPXO10_CONS:
+            return self.DEFAULT_RESOURCE_FILE
+        return None
+
+
 class LeProvostResources(Resources):
     """LeProvost resources."""
     LEPROVOST_CONS = {'K1', 'K2', 'M2', 'N2', 'O1', 'P1', 'Q1', 'S2', 'NU2', 'MU2', '2N2', 'T2', 'L2'}
@@ -438,11 +481,12 @@ class ResourceManager(object):
         'tpxo8': Tpxo8Resources(),
         'tpxo9': Tpxo9Resources(),
         'tpxo9_atlas': Tpxo9AtlasResources(),
+        'tpxo10': Tpxo10Resources(),
         'leprovost': LeProvostResources(),
         'fes2014': FES2014Resources(),
         'adcirc2015': Adcirc2015Resources(),
     }
-    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas'}
+    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10'}
     LEPROVOST_MODELS = {'fes2014', 'leprovost'}
     ADCIRC_MODELS = {'adcirc2015'}
     DEFAULT_RESOURCE = 'tpxo9'
