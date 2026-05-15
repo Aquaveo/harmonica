@@ -290,6 +290,58 @@ class Tpxo10Resources(Resources):
         return None
 
 
+class Tpxo10AtlasResources(Resources):
+    """TPXO10-atlas-v2 resources (1/30 degree global atlas, per-constituent files)."""
+    TPXO10_ATLAS_CONS = {
+        '2N2': 'h_2n2_tpxo10_atlas_30_v2.nc',
+        'K1': 'h_k1_tpxo10_atlas_30_v2.nc',
+        'K2': 'h_k2_tpxo10_atlas_30_v2.nc',
+        'M2': 'h_m2_tpxo10_atlas_30_v2.nc',
+        'M4': 'h_m4_tpxo10_atlas_30_v2.nc',
+        'MF': 'h_mf_tpxo10_atlas_30_v2.nc',
+        'MM': 'h_mm_tpxo10_atlas_30_v2.nc',
+        'MN4': 'h_mn4_tpxo10_atlas_30_v2.nc',
+        'MS4': 'h_ms4_tpxo10_atlas_30_v2.nc',
+        'N2': 'h_n2_tpxo10_atlas_30_v2.nc',
+        'O1': 'h_o1_tpxo10_atlas_30_v2.nc',
+        'P1': 'h_p1_tpxo10_atlas_30_v2.nc',
+        'Q1': 'h_q1_tpxo10_atlas_30_v2.nc',
+        'S1': 'h_s1_tpxo10_atlas_30_v2.nc',
+        'S2': 'h_s2_tpxo10_atlas_30_v2.nc',
+    }
+    is_consolidated_file = False
+    data_dir_name = 'tpxo10_atlas_v2'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (licensed; registration required)."""
+        return {
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO10-atlas-v2 as a plain directory; no archive wrapper.
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (mm storage)."""
+        return {
+            'units_multiplier': 0.001,
+        }
+
+    def available_constituents(self):
+        """The 15 constituents in TPXO10-atlas-v2."""
+        return list(self.TPXO10_ATLAS_CONS.keys())
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """Map constituent name to per-con filename, or None if unsupported."""
+        return self.TPXO10_ATLAS_CONS.get(con.upper())
+
+
 class LeProvostResources(Resources):
     """LeProvost resources."""
     LEPROVOST_CONS = {'K1', 'K2', 'M2', 'N2', 'O1', 'P1', 'Q1', 'S2', 'NU2', 'MU2', '2N2', 'T2', 'L2'}
@@ -482,11 +534,12 @@ class ResourceManager(object):
         'tpxo9': Tpxo9Resources(),
         'tpxo9_atlas': Tpxo9AtlasResources(),
         'tpxo10': Tpxo10Resources(),
+        'tpxo10_atlas': Tpxo10AtlasResources(),
         'leprovost': LeProvostResources(),
         'fes2014': FES2014Resources(),
         'adcirc2015': Adcirc2015Resources(),
     }
-    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10'}
+    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10', 'tpxo10_atlas'}
     LEPROVOST_MODELS = {'fes2014', 'leprovost'}
     ADCIRC_MODELS = {'adcirc2015'}
     DEFAULT_RESOURCE = 'tpxo9'

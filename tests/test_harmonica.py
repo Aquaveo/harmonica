@@ -206,3 +206,19 @@ class TestHarmonica:
         assert r.constituent_resource('UNKNOWN') is None
         assert 'tpxo10' in ResourceManager.RESOURCES
         assert 'tpxo10' in ResourceManager.TPXO_MODELS
+
+    def test_tpxo10_atlas_resource_class(self):
+        """Tpxo10AtlasResources has 15 constituents and per-con filenames."""
+        from harmonica.resource import ResourceManager, Tpxo10AtlasResources
+        r = Tpxo10AtlasResources()
+        cons = set(r.available_constituents())
+        expected = {'2N2', 'K1', 'K2', 'M2', 'M4', 'MF', 'MM', 'MN4', 'MS4', 'N2', 'O1', 'P1', 'Q1', 'S1', 'S2'}
+        assert cons == expected
+        assert r.is_consolidated_file is False
+        assert r.data_dir_name == 'tpxo10_atlas_v2'
+        assert r.dataset_attributes()['units_multiplier'] == 0.001
+        assert r.constituent_resource('M2') == 'h_m2_tpxo10_atlas_30_v2.nc'
+        assert r.constituent_resource('2N2') == 'h_2n2_tpxo10_atlas_30_v2.nc'
+        assert r.constituent_resource('UNKNOWN') is None
+        assert 'tpxo10_atlas' in ResourceManager.RESOURCES
+        assert 'tpxo10_atlas' in ResourceManager.TPXO_MODELS
