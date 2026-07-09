@@ -9,6 +9,7 @@ from unittest.mock import patch
 # 2. Third party modules
 import numpy as np
 import pandas as pd
+import pytest
 
 # 3. Aquaveo modules
 
@@ -18,6 +19,15 @@ from harmonica.tidal_constituents import Constituents
 
 
 WINDOWS_CI_TEST_DATA_DIR = r'\\f\sms\tidal_databases'
+
+# Models whose get_components() reads a gridded or mesh database. The refactor-safety net below exercises each so a
+# later vectorization / batched-DataFrame rewrite (Findings 2 & 3) can be validated numerically instead of byte-exact.
+EXTRACTION_MODELS = ['adcirc2015', 'leprovost', 'fes2014', 'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10', 'tpxo10_atlas']
+# One representative model per distinct extraction code path (consolidated TPXO, per-constituent TPXO, LeProvost 2-D
+# grid, ADCIRC mesh), used for the more expensive per-point property tests.
+REPRESENTATIVE_MODELS = ['tpxo9', 'tpxo10_atlas', 'leprovost', 'adcirc2015']
+# Models with explicit out-of-domain handling that returns NaN rather than raising.
+NAN_MODELS = ['leprovost', 'adcirc2015']
 
 
 class TestHarmonica:
@@ -31,6 +41,8 @@ class TestHarmonica:
         (46.18, -124.38),
     ]
     CONS = ['M2', 'S2', 'N2', 'K1']
+    # A dry-land point outside every model's ocean domain, used to pin the missing-data (NaN) behavior.
+    OUT_OF_DOMAIN_LOC = (23.0, 12.0)  # Sahara desert
     # These are all the constituents that are supported by tide_fac.f in the order it outputs them
     EQ_ARG_CONS = [
         'M2', 'S2', 'N2', 'K1', 'M4', 'O1', 'M6', 'MK3', 'S4', 'MN4', 'NU2', 'S6', 'MU2', '2N2', 'OO1', 'LAM2', 'S1',
@@ -152,6 +164,7 @@ class TestHarmonica:
     def test_data_dir_exists_honors_data_dir_name(self):
         """data_dir_exists looks under data_dir_name when set, falls back to model name otherwise."""
         from harmonica.resource import ResourceManager, Tpxo8Resources
+
         # Stub a resource class with a custom data_dir_name and patch it into RESOURCES
         class FakeResource(Tpxo8Resources):
             data_dir_name = 'fake_versioned_dir'
@@ -236,8 +249,180 @@ class TestHarmonica:
         assert 'tpxo10_atlas' in ResourceManager.TPXO_MODELS
 
     def test_default_resource_is_tpxo10_atlas(self):
-        """harmonica's default tidal model is now TPXO10-atlas (was TPXO9)."""
+        """Harmonica's default tidal model is now TPXO10-atlas (was TPXO9)."""
         from harmonica.resource import ResourceManager
         from harmonica.tpxo_database import DEFAULT_TPXO_RESOURCE
         assert ResourceManager.DEFAULT_RESOURCE == 'tpxo10_atlas'
         assert DEFAULT_TPXO_RESOURCE == 'tpxo10_atlas'
+
+    # ------------------------------------------------------------------------------------------------------------
+    # Refactor-safety net for the get_components() optimizations (Findings 2 & 3).
+    # These characterize the current (assumed-correct) extraction behavior so a later vectorization / batched-
+    # DataFrame rewrite can be validated numerically instead of byte-for-byte -- last-bit reordering from
+    # vectorization breaks the filecmp .base fixtures even when the result is still correct.
+    # ------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def _extract(locs: list[tuple[float, float]], cons: list[str] | None, positive_ph: bool,
+                 model: str) -> list[pd.DataFrame]:
+        """Run one extraction and return the parallel list of per-point constituent frames.
+
+        Args:
+            locs: Point locations as (latitude, longitude) tuples.
+            cons: Constituent names to extract, or None for every available constituent.
+            positive_ph: Report phases in [0, 360] (True) or [-180, 180] (False).
+            model: Name of the tidal model to extract from.
+
+        Returns:
+            One DataFrame per location, parallel with locs.
+        """
+        return Constituents().get_components(list(locs), cons, positive_ph, model).data
+
+    @staticmethod
+    def _assert_extraction_schema(df: pd.DataFrame) -> None:
+        """Assert a constituent frame keeps the expected columns, float dtypes, and a unique index.
+
+        Guards Finding 3 (batched DataFrame construction); a np.allclose value check cannot see a dtype or
+        column-order regression.
+
+        Args:
+            df: A single point's constituent DataFrame from get_components().
+        """
+        assert list(df.columns) == ['amplitude', 'phase', 'speed']
+        assert len(df.index) > 0, 'expected at least one constituent row'
+        assert len(df.index) == len(set(df.index)), 'constituent index must be unique'
+        for column in df.columns:
+            assert df[column].dtype == np.float64, f'{column} must stay float64, got {df[column].dtype}'
+
+    @staticmethod
+    def _assert_frames_close(actual: pd.DataFrame, expected: pd.DataFrame, context: str) -> None:
+        """Assert two constituent frames agree within tolerance, comparing phase modulo 360.
+
+        Amplitude and speed use np.allclose; phase uses a signed angular difference so a value near the 0/360
+        wrap does not read as a large error. Rows are aligned by constituent name first, so the check is
+        independent of the order get_components() happens to emit rows in.
+
+        Args:
+            actual: Frame produced by the code under test.
+            expected: Frame to compare against (golden snapshot or a second extraction).
+            context: Human-readable label included in assertion messages.
+        """
+        expected = expected.reindex(actual.index)
+        amp_a, ph_a, sp_a = (actual['amplitude'].to_numpy(), actual['phase'].to_numpy(),
+                             actual['speed'].to_numpy())
+        amp_e, ph_e, sp_e = (expected['amplitude'].to_numpy(), expected['phase'].to_numpy(),
+                             expected['speed'].to_numpy())
+        assert np.allclose(amp_a, amp_e, rtol=1e-6, atol=1e-9, equal_nan=True), f'{context}: amplitude'
+        assert np.allclose(sp_a, sp_e, rtol=1e-9, atol=1e-12, equal_nan=True), f'{context}: speed'
+        assert np.array_equal(np.isnan(ph_a), np.isnan(ph_e)), f'{context}: phase NaN pattern'
+        dphase = (ph_a - ph_e + 180.0) % 360.0 - 180.0
+        dphase = dphase[~np.isnan(dphase)]
+        assert np.all(np.abs(dphase) < 1e-4), f'{context}: phase (deg)'
+
+    @pytest.mark.parametrize('model', EXTRACTION_MODELS)
+    def test_extraction_snapshot(self, model: str) -> None:
+        """Every model's all-constituent extraction matches its committed numeric golden.
+
+        Primary numeric regression net for Findings 2 & 3: tolerance-based (survives last-bit reordering) and
+        covers every constituent, not just the four in the byte-exact fixtures.
+
+        Args:
+            model: Name of the tidal model under test (parametrized).
+        """
+        data = self._extract(self.LOCS, None, True, model)
+        assert len(data) == len(self.LOCS)
+        golden = pd.read_csv(f'{model}.tol.base')
+        for i, pt in enumerate(data):
+            self._assert_extraction_schema(pt)
+            expected = golden[golden['point'] == i].set_index('con')[['amplitude', 'phase', 'speed']]
+            self._assert_frames_close(pt, expected, f'{model} snapshot point {i}')
+
+    @pytest.mark.parametrize('model', REPRESENTATIVE_MODELS)
+    def test_batch_matches_single_point(self, model: str) -> None:
+        """Extracting a point inside a batch equals extracting it on its own.
+
+        This is the core contract a vectorized get_components() must preserve (Finding 2): the batched result
+        for point i must equal the standalone result for point i.
+
+        Args:
+            model: Representative model for one extraction code path (parametrized).
+        """
+        batch = self._extract(self.LOCS, self.CONS, True, model)
+        assert len(batch) == len(self.LOCS)
+        for i, loc in enumerate(self.LOCS):
+            single = self._extract([loc], self.CONS, True, model)
+            assert len(single) == 1
+            self._assert_frames_close(batch[i], single[0], f'{model} batch-vs-single point {i}')
+
+    @pytest.mark.parametrize('model', REPRESENTATIVE_MODELS)
+    def test_output_order_preserved(self, model: str) -> None:
+        """Output frames stay parallel with the input locations when the input order is reversed.
+
+        Guards against a vectorized rewrite scrambling point order via a reshape or argsort.
+
+        Args:
+            model: Representative model for one extraction code path (parametrized).
+        """
+        forward = self._extract(self.LOCS, self.CONS, True, model)
+        reverse = self._extract(list(reversed(self.LOCS)), self.CONS, True, model)
+        count = len(self.LOCS)
+        assert len(reverse) == count
+        for i in range(count):
+            self._assert_frames_close(reverse[count - 1 - i], forward[i], f'{model} reversed point {i}')
+
+    @pytest.mark.parametrize('model', REPRESENTATIVE_MODELS)
+    def test_positive_ph_branches(self, model: str) -> None:
+        """positive_ph shifts only negative phases by 360 and never changes amplitude or speed.
+
+        Exercises both sides of the ``ph + (360 if positive_ph and ph < 0 else 0)`` branch, which a vectorized
+        rewrite would express as a np.where and could get wrong.
+
+        Args:
+            model: Representative model for one extraction code path (parametrized).
+        """
+        # Note: only the TPXO extractor honors positive_ph=False (its np.angle output is [-180, 180]). LeProvost
+        # and ADCIRC always emit phase in [0, 360] regardless of the flag, so for those the mapping below is an
+        # identity. The assertion is written to hold for both behaviors -- it pins whichever is current.
+        positive = self._extract(self.LOCS, self.CONS, True, model)
+        signed = self._extract(self.LOCS, self.CONS, False, model)
+        for pt_pos, pt_signed in zip(positive, signed):
+            pt_signed = pt_signed.reindex(pt_pos.index)
+            assert np.allclose(pt_pos['amplitude'].to_numpy(), pt_signed['amplitude'].to_numpy(),
+                               rtol=1e-6, atol=1e-9, equal_nan=True), f'{model}: amplitude changed with positive_ph'
+            signed_ph = pt_signed['phase'].to_numpy()
+            expected_pos = np.where(signed_ph < 0.0, signed_ph + 360.0, signed_ph)
+            assert np.allclose(pt_pos['phase'].to_numpy(), expected_pos, atol=1e-9, equal_nan=True), \
+                f'{model}: positive_ph did not shift negative phases by 360'
+
+    @pytest.mark.parametrize('model', REPRESENTATIVE_MODELS)
+    def test_single_point_extraction(self, model: str) -> None:
+        """A length-1 location list returns a single well-formed frame equal to the batch row.
+
+        Length-1 inputs are where vectorized code tends to break on shape (1,) versus scalar.
+
+        Args:
+            model: Representative model for one extraction code path (parametrized).
+        """
+        single = self._extract([self.LOCS[0]], self.CONS, True, model)
+        assert len(single) == 1
+        self._assert_extraction_schema(single[0])
+        batch = self._extract(self.LOCS, self.CONS, True, model)
+        self._assert_frames_close(single[0], batch[0], f'{model} single point')
+
+    @pytest.mark.parametrize('model', NAN_MODELS)
+    def test_out_of_domain_isolated_nan(self, model: str) -> None:
+        """An out-of-domain point yields all-NaN without contaminating a valid point in the same batch.
+
+        Pins the per-point NaN placement that batched DataFrame construction (Finding 3) must keep isolated.
+
+        Args:
+            model: A model with explicit out-of-domain (NaN) handling (parametrized).
+        """
+        data = self._extract([self.LOCS[0], self.OUT_OF_DOMAIN_LOC], None, True, model)
+        assert len(data) == 2
+        assert np.isfinite(data[0]['amplitude'].to_numpy()).any(), f'{model}: valid point unexpectedly all-NaN'
+        assert np.isnan(data[1]['amplitude'].to_numpy()).all(), f'{model}: out-of-domain point should be all-NaN'
+
+    def test_empty_locs_returns_empty(self) -> None:
+        """An empty location list returns an empty result list rather than raising."""
+        assert self._extract([], self.CONS, True, 'tpxo9') == []
