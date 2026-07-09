@@ -62,14 +62,18 @@ class AdcircDB(TidalDB):
         if not locs:
             return self  # ERROR: Not in latitude/longitude
 
-        self.data = [pd.DataFrame(columns=['amplitude', 'phase', 'speed']) for _ in range(len(locs))]
+        # Accumulate each point's constituent rows and build one DataFrame per point at the end, instead of
+        # writing DataFrame cells one at a time.
+        rows = [{} for _ in range(len(locs))]
 
         # Step 1: read the file and get geometry:
         con_dsets = self.resources.get_datasets(cons)[0]
-        con_x = con_dsets[0].x.values
-        con_y = con_dsets[0].y.values
+        # ravel() collapses the trailing singleton dim (nodes stored as (n, 1)); tolist() gives plain Python floats
+        # so building mesh_pts is a single vectorized read instead of millions of per-element numpy scalar casts.
+        con_x = con_dsets[0].x.values.ravel()
+        con_y = con_dsets[0].y.values.ravel()
 
-        mesh_pts = [(float(con_x[idx]), float(con_y[idx]), 0.0) for idx in range(len(con_x))]
+        mesh_pts = [(x, y, 0.0) for x, y in zip(con_x.tolist(), con_y.tolist())]
         tri_list = con_dsets[0].element.values.flatten().tolist()
         tri_search = TriSearch(mesh_pts, tri_list)
 
@@ -94,13 +98,15 @@ class AdcircDB(TidalDB):
                 points_and_weights.append((i, (pt_1, pt_2, pt_3), (w1, w2, w3)))
             else:  # Outside domain, return NaN for all constituents
                 for con in cons:
-                    self.data[i].loc[con] = [numpy.nan, numpy.nan, numpy.nan]
+                    rows[i][con] = (numpy.nan, numpy.nan, numpy.nan)
 
         for con in cons:
             con_amp_name = con + "_amplitude"
             con_pha_name = con + "_phase"
-            con_amp = con_dsets[0][con_amp_name]
-            con_pha = con_dsets[0][con_pha_name]
+            # Materialize the per-node arrays once per constituent; the point loop then indexes numpy directly
+            # instead of paying xarray scalar-access overhead for every corner of every point.
+            con_amp = con_dsets[0][con_amp_name].values
+            con_pha = con_dsets[0][con_pha_name].values
             for i, pts, weights in points_and_weights:
                 amps = [float(con_amp[pts[0]]), float(con_amp[pts[1]]), float(con_amp[pts[2]])]
                 phases = [
@@ -126,6 +132,10 @@ class AdcircDB(TidalDB):
                     if cti < 0.0:
                         new_phase = 360.0 - new_phase
                 speed = NOAA_SPEEDS[con][0] if con in NOAA_SPEEDS else numpy.nan
-                self.data[i].loc[con] = [new_amp, new_phase, speed]
+                rows[i][con] = (new_amp, new_phase, speed)
 
+        self.data = [
+            pd.DataFrame.from_dict(row, orient='index', columns=['amplitude', 'phase', 'speed'])
+            for row in rows
+        ]
         return self

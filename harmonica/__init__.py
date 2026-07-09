@@ -18,4 +18,4 @@ config = {
     'data_dir': os.path.join(os.getenv('APPDATA', os.path.dirname(os.path.dirname(__file__))), 'harmonica', 'data')
 }
 
-__version__ = '2.0.1'
+__version__ = '2.2.0'

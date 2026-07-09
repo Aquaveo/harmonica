@@ -19,13 +19,15 @@ from harmonica import config
 MAX_NUM_CONS = 37  # Maximum number of constituents in all available models
 
 
-class Resources(object):
+class Resources(metaclass=ABCMeta):
     """Abstract base class for model resources."""
-    def __init__(self):
-        """Base constructor."""
-        pass
 
-    __metaclass__ = ABCMeta
+    # Default: data is one file per constituent. Override to True for single-file models.
+    # Consumed by TpxoDB.get_components to dispatch between the per-con and consolidated code paths.
+    is_consolidated_file = False
+    # Default: the on-disk data subdirectory name (used under both the %APPDATA% data dir and
+    # pre_existing_data_dir) matches the model name. Override (e.g. 'tpxo9_atlas_v5') when it is version-suffixed.
+    data_dir_name = None
 
     @abstractmethod
     def resource_attributes(self):
@@ -143,6 +145,7 @@ class Tpxo9Resources(Resources):
     """TPXO9 resources."""
     TPXO9_CONS = {'2N2', 'K1', 'K2', 'M2', 'M4', 'MF', 'MM', 'MN4', 'MS4', 'N2', 'O1', 'P1', 'Q1', 'S1', 'S2'}
     DEFAULT_RESOURCE_FILE = 'tpxo9_netcdf/h_tpxo9.v1.nc'
+    is_consolidated_file = True
 
     def __init__(self):
         """Constructor."""
@@ -184,6 +187,153 @@ class Tpxo9Resources(Resources):
             return self.DEFAULT_RESOURCE_FILE
         else:
             return None
+
+
+class Tpxo9AtlasResources(Resources):
+    """TPXO9-atlas-v5 resources (1/30 degree global atlas, per-constituent files)."""
+    TPXO9_ATLAS_CONS = {
+        '2N2': 'h_2n2_tpxo9_atlas_30_v5.nc',
+        'K1': 'h_k1_tpxo9_atlas_30_v5.nc',
+        'K2': 'h_k2_tpxo9_atlas_30_v5.nc',
+        'M2': 'h_m2_tpxo9_atlas_30_v5.nc',
+        'M4': 'h_m4_tpxo9_atlas_30_v5.nc',
+        'MF': 'h_mf_tpxo9_atlas_30_v5.nc',
+        'MM': 'h_mm_tpxo9_atlas_30_v5.nc',
+        'MN4': 'h_mn4_tpxo9_atlas_30_v5.nc',
+        'MS4': 'h_ms4_tpxo9_atlas_30_v5.nc',
+        'N2': 'h_n2_tpxo9_atlas_30_v5.nc',
+        'O1': 'h_o1_tpxo9_atlas_30_v5.nc',
+        'P1': 'h_p1_tpxo9_atlas_30_v5.nc',
+        'Q1': 'h_q1_tpxo9_atlas_30_v5.nc',
+        'S1': 'h_s1_tpxo9_atlas_30_v5.nc',
+        'S2': 'h_s2_tpxo9_atlas_30_v5.nc',
+    }
+    is_consolidated_file = False
+    data_dir_name = 'tpxo9_atlas_v5'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (TPXO9-atlas-v5 is licensed; registration required, no free distribution)."""
+        return {
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO9-atlas-v5 as a plain directory; no archive wrapper.
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (mm storage, scale to m)."""
+        return {
+            'units_multiplier': 0.001,
+        }
+
+    def available_constituents(self):
+        """The 15 constituents in TPXO9-atlas-v5."""
+        return list(self.TPXO9_ATLAS_CONS.keys())
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """Map constituent name to per-con filename, or None if unsupported."""
+        return self.TPXO9_ATLAS_CONS.get(con.upper())
+
+
+class Tpxo10Resources(Resources):
+    """TPXO10v2 resources (1/6 degree global, consolidated single-file layout)."""
+    TPXO10_CONS = {
+        'M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'P1', 'Q1', 'MM', 'MF',
+        'MSF', 'M4', 'MN4', 'MS4', '2N2', 'S1', '2Q1', 'J1', 'L2', 'M3',
+        'MU2', 'NU2', 'OO1', 'T2', 'M1',
+    }
+    DEFAULT_RESOURCE_FILE = 'h_tpxo10.v2.nc'
+    is_consolidated_file = True
+    data_dir_name = 'tpxo10v2'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (TPXO10v2 is licensed; registration required, no free distribution)."""
+        return {
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO10v2 as a plain directory; no archive wrapper.
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (m storage, no scaling)."""
+        return {
+            'units_multiplier': 1.0,
+        }
+
+    def available_constituents(self):
+        """The 25 constituents in TPXO10v2."""
+        return self.TPXO10_CONS
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """All supported cons live in the consolidated file."""
+        if con.upper() in self.TPXO10_CONS:
+            return self.DEFAULT_RESOURCE_FILE
+        return None
+
+
+class Tpxo10AtlasResources(Resources):
+    """TPXO10-atlas-v2 resources (1/30 degree global atlas, per-constituent files)."""
+    TPXO10_ATLAS_CONS = {
+        '2N2': 'h_2n2_tpxo10_atlas_30_v2.nc',
+        'K1': 'h_k1_tpxo10_atlas_30_v2.nc',
+        'K2': 'h_k2_tpxo10_atlas_30_v2.nc',
+        'M2': 'h_m2_tpxo10_atlas_30_v2.nc',
+        'M4': 'h_m4_tpxo10_atlas_30_v2.nc',
+        'MF': 'h_mf_tpxo10_atlas_30_v2.nc',
+        'MM': 'h_mm_tpxo10_atlas_30_v2.nc',
+        'MN4': 'h_mn4_tpxo10_atlas_30_v2.nc',
+        'MS4': 'h_ms4_tpxo10_atlas_30_v2.nc',
+        'N2': 'h_n2_tpxo10_atlas_30_v2.nc',
+        'O1': 'h_o1_tpxo10_atlas_30_v2.nc',
+        'P1': 'h_p1_tpxo10_atlas_30_v2.nc',
+        'Q1': 'h_q1_tpxo10_atlas_30_v2.nc',
+        'S1': 'h_s1_tpxo10_atlas_30_v2.nc',
+        'S2': 'h_s2_tpxo10_atlas_30_v2.nc',
+    }
+    is_consolidated_file = False
+    data_dir_name = 'tpxo10_atlas_v2'
+
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+
+    def resource_attributes(self):
+        """Disabled (licensed; registration required)."""
+        return {
+            'url': None,  # Resources must already exist. Licensing restrictions prevent hosting files.
+            'archive': None,  # OSU ships TPXO10-atlas-v2 as a plain directory; no archive wrapper.
+        }
+
+    def dataset_attributes(self):
+        """Dataset attributes (mm storage)."""
+        return {
+            'units_multiplier': 0.001,
+        }
+
+    def available_constituents(self):
+        """The 15 constituents in TPXO10-atlas-v2."""
+        return list(self.TPXO10_ATLAS_CONS.keys())
+
+    def constituent_groups(self):
+        """Single uniform-resolution group."""
+        return [self.available_constituents()]
+
+    def constituent_resource(self, con):
+        """Map constituent name to per-con filename, or None if unsupported."""
+        return self.TPXO10_ATLAS_CONS.get(con.upper())
 
 
 class LeProvostResources(Resources):
@@ -376,14 +526,17 @@ class ResourceManager(object):
     RESOURCES = {
         'tpxo8': Tpxo8Resources(),
         'tpxo9': Tpxo9Resources(),
+        'tpxo9_atlas': Tpxo9AtlasResources(),
+        'tpxo10': Tpxo10Resources(),
+        'tpxo10_atlas': Tpxo10AtlasResources(),
         'leprovost': LeProvostResources(),
         'fes2014': FES2014Resources(),
         'adcirc2015': Adcirc2015Resources(),
     }
-    TPXO_MODELS = {'tpxo8', 'tpxo9'}
+    TPXO_MODELS = {'tpxo8', 'tpxo9', 'tpxo9_atlas', 'tpxo10', 'tpxo10_atlas'}
     LEPROVOST_MODELS = {'fes2014', 'leprovost'}
     ADCIRC_MODELS = {'adcirc2015'}
-    DEFAULT_RESOURCE = 'tpxo9'
+    DEFAULT_RESOURCE = 'tpxo10_atlas'  # was 'tpxo9'
 
     def __init__(self, model=DEFAULT_RESOURCE):
         """Constructor.
@@ -414,9 +567,11 @@ class ResourceManager(object):
         Returns:
             bool: True if the model's data folder exists in either location.
         """
-        if os.path.isdir(os.path.join(config['data_dir'], model)):
+        resource = ResourceManager.RESOURCES.get(model)
+        data_dir = (resource.data_dir_name if resource is not None else None) or model
+        if os.path.isdir(os.path.join(config['data_dir'], data_dir)):
             return True  # Exists in the default %APPDATA% folder
-        if os.path.isdir(os.path.join(config['pre_existing_data_dir'], model)):
+        if os.path.isdir(os.path.join(config['pre_existing_data_dir'], data_dir)):
             return True  # Exists in the user configurable folder
         return False
 
@@ -496,7 +651,8 @@ class ResourceManager(object):
             self.model_atts.available_constituents()
         )
         if not resource_dir:
-            resource_dir = os.path.join(config['data_dir'], self.model)
+            data_dir = self.model_atts.data_dir_name or self.model
+            resource_dir = os.path.join(config['data_dir'], data_dir)
         for r in resources:
             path = os.path.join(resource_dir, r)
             if not os.path.exists(path):
@@ -505,7 +661,8 @@ class ResourceManager(object):
 
     def remove_model(self):
         """Remove all of the model's resources."""
-        resource_dir = os.path.join(config['data_dir'], self.model)
+        data_dir = self.model_atts.data_dir_name or self.model
+        resource_dir = os.path.join(config['data_dir'], data_dir)
         if os.path.exists(resource_dir):
             import shutil
 
@@ -533,8 +690,9 @@ class ResourceManager(object):
             paths = set()
             if config['pre_existing_data_dir']:
                 missing = set()
+                data_dir = self.model_atts.data_dir_name or self.model
                 for r in rsrcs:
-                    path = os.path.join(config['pre_existing_data_dir'], self.model, r)
+                    path = os.path.join(config['pre_existing_data_dir'], data_dir, r)
                     paths.add(path) if os.path.exists(path) else missing.add(r)
                 rsrcs = missing
                 if not rsrcs and paths:
@@ -544,7 +702,8 @@ class ResourceManager(object):
                         filenames.append(paths_list)
                     continue
 
-            resource_dir = os.path.join(config['data_dir'], self.model)
+            data_dir = self.model_atts.data_dir_name or self.model
+            resource_dir = os.path.join(config['data_dir'], data_dir)
             for r in rsrcs:
                 path = os.path.join(resource_dir, r)
                 if not os.path.exists(path):
