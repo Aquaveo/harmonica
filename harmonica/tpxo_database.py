@@ -1,7 +1,6 @@
 """Class to manage the TPXO tidal database models."""
 
 # 1. Standard Python modules
-from bisect import bisect
 
 # 2. Third party modules
 import numpy as np
@@ -52,11 +51,22 @@ class TpxoDB(TidalDB):
                 Empty list on error. Note that function uses fluent interface pattern.
 
         """
-        self.data = [pd.DataFrame(columns=['amplitude', 'phase', 'speed']) for _ in range(len(locs))]
+        n_locs = len(locs)
+        # Accumulate each point's constituent rows, then build one DataFrame per point at the end. This avoids the
+        # per-cell DataFrame.loc writes the old inner loop paid for every constituent of every point.
+        rows = [{} for _ in range(n_locs)]
 
         # if no constituents were requested, return all available
         if cons is None or not len(cons):
             cons = list(self.resources.available_constituents())
+        requested = set(cons)
+        units_multiplier = self.resources.get_units_multiplier()
+
+        # Requested coordinates as arrays; longitudes normalized to [0, 360) exactly as the scalar path did.
+        lats = np.array([loc[0] for loc in locs], dtype=float)
+        lons = np.array([loc[1] for loc in locs], dtype=float)
+        lons = np.where(lons < 0.0, lons + 360.0, lons)
+
         # open the netcdf database(s)
         single_file = self.resources.model_atts.is_consolidated_file
         for d in self.resources.get_datasets(cons):
@@ -71,55 +81,54 @@ class TpxoDB(TidalDB):
                     nc_names = [x.tobytes().decode('utf-8').strip().upper() for x in dset.con.values]
                 else:
                     nc_names = [dset.con.item().decode('utf-8').strip().upper()]
-                for c in set(cons) & set(nc_names):
-                    for i, loc in enumerate(locs):
-                        lat, lon = loc
-                        # check the phase of the longitude
-                        if lon < 0:
-                            lon = lon + 360.
 
-                        # get constituent and bounding indices within the data cube
-                        idx = {
-                            'con': nc_names.index(c) if single_file else 0,
-                            'top': bisect(dset.lat_z, lat),
-                            'right': bisect(dset.lon_z, lon),
-                        }
-                        idx['bottom'] = idx['top'] - 1
-                        idx['left'] = idx['right'] - 1
-                        # get distance from the bottom left to the requested point
-                        dx = (lon - dset.lon_z.values[idx['left']]) / \
-                             (dset.lon_z.values[idx['right']] - dset.lon_z.values[idx['left']])
-                        dy = (lat - dset.lat_z.values[idx['bottom']]) / \
-                             (dset.lat_z.values[idx['top']] - dset.lat_z.values[idx['bottom']])
-                        # calculate weights for bilinear spline
-                        weights = np.array([
-                            (1. - dx) * (1. - dy),  # w00 :: bottom left
-                            (1. - dx) * dy,         # w01 :: bottom right
-                            dx * (1. - dy),         # w10 :: top left
-                            dx * dy                 # w11 :: top right
-                        ]).reshape((2, 2))
-                        weights = weights / weights.sum()
-                        # devise the slice to subset surrounding values
+                # Bounding indices for every point at once. bisect(a, x) == np.searchsorted(a, x, side='right'),
+                # so these indices (and the edge/longitude-wrap behavior) match the old per-point scalar path.
+                lon_z = dset.lon_z.values
+                lat_z = dset.lat_z.values
+                right = np.searchsorted(lon_z, lons, side='right')
+                left = right - 1
+                top = np.searchsorted(lat_z, lats, side='right')
+                bottom = top - 1
+                # Bilinear spline weights per point, shaped (n_locs, 2, 2) to line up with each 2x2 data window
+                # (row = lon left/right, col = lat bottom/top), then normalized -- identical layout to the old code.
+                dx = (lons - lon_z[left]) / (lon_z[right] - lon_z[left])
+                dy = (lats - lat_z[bottom]) / (lat_z[top] - lat_z[bottom])
+                weights = np.stack([
+                    (1. - dx) * (1. - dy),  # bottom left
+                    (1. - dx) * dy,         # bottom right
+                    dx * (1. - dy),         # top left
+                    dx * dy,                # top right
+                ], axis=-1).reshape(n_locs, 2, 2)
+                weights = weights / weights.sum(axis=(1, 2), keepdims=True)
+
+                for c in requested & set(nc_names):
+                    con_idx = nc_names.index(c) if single_file else 0
+                    # Read only each point's 2x2 window from the lazily-opened arrays (never the whole grid),
+                    # stacking the windows so the interpolation runs across all points at once.
+                    re_block = np.empty((n_locs, 2, 2))
+                    im_block = np.empty((n_locs, 2, 2))
+                    for i in range(n_locs):
                         if single_file:
-                            query = np.s_[idx['con'], idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
+                            query = np.s_[con_idx, left[i]:right[i] + 1, bottom[i]:top[i] + 1]
                         else:
-                            query = np.s_[idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
-                        # calculate the weighted tide from real and imaginary components. Index the lazily-opened
-                        # DataArray before materializing so only the 2x2 (or 1x2x2) window is read from disk instead
-                        # of the entire constituent grid.
-                        h = complex(
-                            (dset.hRe[query].values * weights).sum(), -(dset.hIm[query].values * weights).sum()
-                        )
-                        # get the phase and amplitude
-                        ph = np.angle(h, deg=True)
-                        # place info into data table
-                        self.data[i].loc[c] = [
-                            # amplitude
-                            np.absolute(h) * self.resources.get_units_multiplier(),
-                            # phase
-                            ph + (360. if positive_ph and ph < 0 else 0),
-                            # speed
-                            NOAA_SPEEDS[c][0]
-                        ]
+                            query = np.s_[left[i]:right[i] + 1, bottom[i]:top[i] + 1]
+                        re_block[i] = dset.hRe[query].values
+                        im_block[i] = dset.hIm[query].values
+                    # weighted tide from the real and imaginary components, vectorized over points
+                    real = (re_block * weights).sum(axis=(1, 2))
+                    imag = -(im_block * weights).sum(axis=(1, 2))
+                    h = real + 1j * imag
+                    phase = np.angle(h, deg=True)
+                    if positive_ph:
+                        phase = np.where(phase < 0.0, phase + 360.0, phase)
+                    amplitude = np.absolute(h) * units_multiplier
+                    speed = NOAA_SPEEDS[c][0]
+                    for i in range(n_locs):
+                        rows[i][c] = (float(amplitude[i]), float(phase[i]), speed)
 
+        self.data = [
+            pd.DataFrame.from_dict(row, orient='index', columns=['amplitude', 'phase', 'speed'])
+            for row in rows
+        ]
         return self

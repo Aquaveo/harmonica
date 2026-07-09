@@ -62,7 +62,9 @@ class AdcircDB(TidalDB):
         if not locs:
             return self  # ERROR: Not in latitude/longitude
 
-        self.data = [pd.DataFrame(columns=['amplitude', 'phase', 'speed']) for _ in range(len(locs))]
+        # Accumulate each point's constituent rows and build one DataFrame per point at the end, instead of
+        # writing DataFrame cells one at a time.
+        rows = [{} for _ in range(len(locs))]
 
         # Step 1: read the file and get geometry:
         con_dsets = self.resources.get_datasets(cons)[0]
@@ -96,7 +98,7 @@ class AdcircDB(TidalDB):
                 points_and_weights.append((i, (pt_1, pt_2, pt_3), (w1, w2, w3)))
             else:  # Outside domain, return NaN for all constituents
                 for con in cons:
-                    self.data[i].loc[con] = [numpy.nan, numpy.nan, numpy.nan]
+                    rows[i][con] = (numpy.nan, numpy.nan, numpy.nan)
 
         for con in cons:
             con_amp_name = con + "_amplitude"
@@ -130,6 +132,10 @@ class AdcircDB(TidalDB):
                     if cti < 0.0:
                         new_phase = 360.0 - new_phase
                 speed = NOAA_SPEEDS[con][0] if con in NOAA_SPEEDS else numpy.nan
-                self.data[i].loc[con] = [new_amp, new_phase, speed]
+                rows[i][con] = (new_amp, new_phase, speed)
 
+        self.data = [
+            pd.DataFrame.from_dict(row, orient='index', columns=['amplitude', 'phase', 'speed'])
+            for row in rows
+        ]
         return self

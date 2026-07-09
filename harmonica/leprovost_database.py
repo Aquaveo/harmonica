@@ -64,7 +64,9 @@ class LeProvostDB(TidalDB):
         if not locs:
             return self  # ERROR: Not in latitude/longitude
 
-        self.data = [pd.DataFrame(columns=['amplitude', 'phase', 'speed']) for _ in range(len(locs))]
+        # Accumulate each point's constituent rows and build one DataFrame per point at the end, instead of
+        # writing DataFrame cells one at a time in the inner loop.
+        rows = [{} for _ in range(len(locs))]
         dataset_atts = self.resources.model_atts.dataset_attributes()
 
         n_lat = dataset_atts['num_lats']
@@ -134,7 +136,7 @@ class LeProvostDB(TidalDB):
                                 skip = True
 
                     if skip:
-                        self.data[i].loc[con] = [numpy.nan, numpy.nan, numpy.nan]
+                        rows[i][con] = (numpy.nan, numpy.nan, numpy.nan)
                     else:
                         xratio = (x_lon - xlonlo) / d_lon
                         yratio = (y_lat - ylatlo) / d_lat
@@ -177,6 +179,10 @@ class LeProvostDB(TidalDB):
                             phase = 360.0 - phase
                         phase += (360. if positive_ph and phase < 0 else 0)
                         speed = NOAA_SPEEDS[con][0] if con in NOAA_SPEEDS else numpy.nan
-                        self.data[i].loc[con] = [amp, phase, speed]
+                        rows[i][con] = (amp, phase, speed)
 
+        self.data = [
+            pd.DataFrame.from_dict(row, orient='index', columns=['amplitude', 'phase', 'speed'])
+            for row in rows
+        ]
         return self
