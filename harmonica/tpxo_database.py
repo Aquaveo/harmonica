@@ -68,7 +68,7 @@ class TpxoDB(TidalDB):
                     dset['lon_z'] = dset.lon_z.sel(ny=0, drop=True)
                 # get the dataset constituent name array from data cube
                 if single_file:
-                    nc_names = [x.tostring().decode('utf-8').strip().upper() for x in dset.con.values]
+                    nc_names = [x.tobytes().decode('utf-8').strip().upper() for x in dset.con.values]
                 else:
                     nc_names = [dset.con.item().decode('utf-8').strip().upper()]
                 for c in set(cons) & set(nc_names):
@@ -104,9 +104,11 @@ class TpxoDB(TidalDB):
                             query = np.s_[idx['con'], idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
                         else:
                             query = np.s_[idx['left']:idx['right'] + 1, idx['bottom']:idx['top'] + 1]
-                        # calculate the weighted tide from real and imaginary components
+                        # calculate the weighted tide from real and imaginary components. Index the lazily-opened
+                        # DataArray before materializing so only the 2x2 (or 1x2x2) window is read from disk instead
+                        # of the entire constituent grid.
                         h = complex(
-                            (dset.hRe.values[query] * weights).sum(), -(dset.hIm.values[query] * weights).sum()
+                            (dset.hRe[query].values * weights).sum(), -(dset.hIm[query].values * weights).sum()
                         )
                         # get the phase and amplitude
                         ph = np.angle(h, deg=True)

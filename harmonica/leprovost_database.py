@@ -81,7 +81,16 @@ class LeProvostDB(TidalDB):
             else:  # FES2014 has separate files for each constituent with no constituent name dataset.
                 con_filenames = filenames[dset_idx]
                 nc_names = [os.path.splitext(os.path.basename(filename))[0].upper() for filename in con_filenames]
-            for con_idx, con in enumerate(sorted(set(cons) & set(nc_names))):
+            for con in sorted(set(cons) & set(nc_names)):
+                # Select the constituent's grid(s) once per constituent and materialize to numpy so the point loop
+                # indexes numpy directly instead of re-selecting and reading through xarray for every point.
+                con_idx = nc_names.index(con)
+                if self.model == 'leprovost':  # All constituents in one file.
+                    amp_dset = dset[0].amplitude[con_idx].values
+                    phase_dset = dset[0].phase[con_idx].values
+                else:  # FES2014 has a separate file per constituent.
+                    amp_dset = dset[con_idx].amplitude.values
+                    phase_dset = dset[con_idx].phase.values
                 for i, pt in enumerate(locs):
                     y_lat, x_lon = pt  # lat,lon not x,y
                     xlo = int((x_lon - lon_min) / d_lon) + 1
@@ -104,14 +113,6 @@ class LeProvostDB(TidalDB):
                     if out_of_bounds:
                         skip = True
                     else:  # Make sure we have at least one neighbor with an active amplitude value.
-                        con_idx = nc_names.index(con)
-                        if self.model == 'leprovost':
-                            amp_dset = dset[0].amplitude[con_idx]
-                            phase_dset = dset[0].phase[con_idx]
-                        else:
-                            amp_dset = dset[con_idx].amplitude
-                            phase_dset = dset[con_idx].phase
-
                         # Read potential contributing amplitudes from the file.
                         xlo_yhi_amp = amp_dset[yhi][xlo]
                         xlo_ylo_amp = amp_dset[ylo][xlo]
