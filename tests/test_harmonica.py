@@ -256,10 +256,10 @@ class TestHarmonica:
         assert DEFAULT_TPXO_RESOURCE == 'tpxo10_atlas'
 
     # ------------------------------------------------------------------------------------------------------------
-    # Refactor-safety net for the get_components() optimizations (Findings 2 & 3).
-    # These characterize the current (assumed-correct) extraction behavior so a later vectorization / batched-
-    # DataFrame rewrite can be validated numerically instead of byte-for-byte -- last-bit reordering from
-    # vectorization breaks the filecmp .base fixtures even when the result is still correct.
+    # Numeric regression net for the vectorized, batched get_components(). These characterize the extraction
+    # behavior tolerance-based instead of byte-for-byte, because floating-point reordering (from the vectorized
+    # interpolation, or from running on a different platform) breaks the filecmp .base fixtures even when the
+    # result is still correct.
     # ------------------------------------------------------------------------------------------------------------
 
     @staticmethod
@@ -282,8 +282,8 @@ class TestHarmonica:
     def _assert_extraction_schema(df: pd.DataFrame) -> None:
         """Assert a constituent frame keeps the expected columns, float dtypes, and a unique index.
 
-        Guards Finding 3 (batched DataFrame construction); a np.allclose value check cannot see a dtype or
-        column-order regression.
+        Guards the batched DataFrame construction; a np.allclose value check cannot see a dtype or column-order
+        regression.
 
         Args:
             df: A single point's constituent DataFrame from get_components().
@@ -311,6 +311,7 @@ class TestHarmonica:
             expected: Frame to compare against (golden snapshot or a second extraction).
             context: Human-readable label included in assertion messages.
         """
+        assert set(actual.index) == set(expected.index), f'{context}: constituent set differs'
         expected = expected.reindex(actual.index)
         amp_a, ph_a, sp_a = (actual['amplitude'].to_numpy(), actual['phase'].to_numpy(),
                              actual['speed'].to_numpy())
@@ -345,8 +346,8 @@ class TestHarmonica:
     def test_extraction_snapshot(self, model: str) -> None:
         """Every model's all-constituent extraction matches its committed numeric golden.
 
-        Primary numeric regression net for Findings 2 & 3: tolerance-based (survives last-bit reordering) and
-        covers every constituent, not just the four in the byte-exact fixtures.
+        Primary numeric regression net: tolerance-based (survives floating-point reordering) and covers every
+        constituent, not just the four in the byte-exact fixtures.
 
         Args:
             model: Name of the tidal model under test (parametrized).
@@ -396,8 +397,8 @@ class TestHarmonica:
     def test_positive_ph_branches(self, model: str) -> None:
         """positive_ph shifts only negative phases by 360 and never changes amplitude or speed.
 
-        Exercises both sides of the ``ph + (360 if positive_ph and ph < 0 else 0)`` branch, which a vectorized
-        rewrite would express as a np.where and could get wrong.
+        Exercises both sides of the positive_ph branch, which the vectorized TPXO path expresses as a np.where
+        (tpxo_database.py) and could get wrong.
 
         Args:
             model: Representative model for one extraction code path (parametrized).
@@ -445,6 +446,48 @@ class TestHarmonica:
         assert np.isfinite(data[0]['amplitude'].to_numpy()).any(), f'{model}: valid point unexpectedly all-NaN'
         assert np.isnan(data[1]['amplitude'].to_numpy()).all(), f'{model}: out-of-domain point should be all-NaN'
 
-    def test_empty_locs_returns_empty(self) -> None:
-        """An empty location list returns an empty result list rather than raising."""
-        assert self._extract([], self.CONS, True, 'tpxo9') == []
+    @pytest.mark.parametrize('model', REPRESENTATIVE_MODELS)
+    def test_empty_locs_returns_empty(self, model: str) -> None:
+        """An empty location list returns an empty result list rather than raising.
+
+        The extractor families diverge on empty input (adcirc/leprovost return before rebuilding self.data;
+        TPXO falls through and builds an empty list), so every representative path is exercised.
+
+        Args:
+            model: Representative model for one extraction code path (parametrized).
+        """
+        assert self._extract([], self.CONS, True, model) == []
+
+    @pytest.mark.parametrize('model', ['tpxo9', 'tpxo10_atlas'])
+    def test_tpxo_out_of_domain_isolated_nan(self, model: str) -> None:
+        """A TPXO point outside the grid yields all-NaN instead of aborting the whole batch.
+
+        The TPXO grids span the full globe (-90..90), so an out-of-domain point needs a latitude past the pole;
+        (90.1, ...) is beyond the grid, and domain validation must return NaN for it (like LeProvost/ADCIRC)
+        while the other point in the same batch still extracts normally.
+
+        Args:
+            model: TPXO model under test (consolidated and per-constituent paths).
+        """
+        data = self._extract([self.LOCS[0], (90.1, -74.07)], self.CONS, True, model)
+        assert len(data) == 2
+        assert np.isfinite(data[0]['amplitude'].to_numpy()).any(), f'{model}: valid point unexpectedly all-NaN'
+        assert np.isnan(data[1]['amplitude'].to_numpy()).all(), f'{model}: out-of-domain point should be all-NaN'
+
+    @pytest.mark.parametrize('model', ['tpxo9', 'tpxo10_atlas'])
+    def test_tpxo_edge_longitudes_batch_matches_single(self, model: str) -> None:
+        """Batch extraction equals single-point extraction at eastern-hemisphere and near-seam longitudes.
+
+        The interior LOCS never reach the eastern hemisphere (the `lons < 0` false branch) or the 0/360 seam, so
+        these points exercise the vectorized index/window path there; each point's batch result must match its
+        standalone extraction.
+
+        Args:
+            model: TPXO model under test (consolidated and per-constituent paths).
+        """
+        edge_locs = [(0.0, 100.0), (-20.0, 179.0), (40.0, 0.5), (60.0, 359.0)]
+        batch = self._extract(edge_locs, self.CONS, True, model)
+        assert len(batch) == len(edge_locs)
+        for i, loc in enumerate(edge_locs):
+            single = self._extract([loc], self.CONS, True, model)
+            self._assert_frames_close(batch[i], single[0], f'{model} edge point {i}')

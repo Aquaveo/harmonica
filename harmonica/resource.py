@@ -19,21 +19,15 @@ from harmonica import config
 MAX_NUM_CONS = 37  # Maximum number of constituents in all available models
 
 
-class Resources(object):
+class Resources(metaclass=ABCMeta):
     """Abstract base class for model resources."""
 
     # Default: data is one file per constituent. Override to True for single-file models.
     # Consumed by TpxoDB.get_components to dispatch between the per-con and consolidated code paths.
     is_consolidated_file = False
-    # Default: data subdirectory under pre_existing_data_dir matches the model name.
-    # Override (e.g. 'tpxo9_atlas_v5') when the on-disk dir is version-suffixed.
+    # Default: the on-disk data subdirectory name (used under both the %APPDATA% data dir and
+    # pre_existing_data_dir) matches the model name. Override (e.g. 'tpxo9_atlas_v5') when it is version-suffixed.
     data_dir_name = None
-
-    def __init__(self):
-        """Base constructor."""
-        pass
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def resource_attributes(self):

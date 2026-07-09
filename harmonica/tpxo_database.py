@@ -83,32 +83,39 @@ class TpxoDB(TidalDB):
                     nc_names = [dset.con.item().decode('utf-8').strip().upper()]
 
                 # Bounding indices for every point at once. bisect(a, x) == np.searchsorted(a, x, side='right'),
-                # so these indices (and the edge/longitude-wrap behavior) match the old per-point scalar path.
+                # so the interior indices match the old per-point scalar path.
                 lon_z = dset.lon_z.values
                 lat_z = dset.lat_z.values
                 right = np.searchsorted(lon_z, lons, side='right')
-                left = right - 1
                 top = np.searchsorted(lat_z, lats, side='right')
+                # A point is in the grid only if its full 2x2 window is in range. Out-of-domain points get NaN
+                # rows (as the LeProvost/ADCIRC extractors do) instead of raising and aborting the whole batch.
+                in_domain = (right >= 1) & (right < len(lon_z)) & (top >= 1) & (top < len(lat_z))
+                # Clip so the vectorized weight math never indexes out of bounds for an out-of-domain point; its
+                # weights are discarded (its data window stays NaN). In-domain indices are unchanged by the clip.
+                right = np.clip(right, 1, len(lon_z) - 1)
+                left = right - 1
+                top = np.clip(top, 1, len(lat_z) - 1)
                 bottom = top - 1
-                # Bilinear spline weights per point, shaped (n_locs, 2, 2) to line up with each 2x2 data window
-                # (row = lon left/right, col = lat bottom/top), then normalized -- identical layout to the old code.
+                # Bilinear spline weights per point, shaped (n_locs, 2, 2) to line up with each 2x2 data window:
+                # row = lon (left, right), col = lat (bottom, top). Same layout the old scalar code used.
                 dx = (lons - lon_z[left]) / (lon_z[right] - lon_z[left])
                 dy = (lats - lat_z[bottom]) / (lat_z[top] - lat_z[bottom])
                 weights = np.stack([
-                    (1. - dx) * (1. - dy),  # bottom left
-                    (1. - dx) * dy,         # bottom right
-                    dx * (1. - dy),         # top left
-                    dx * dy,                # top right
+                    (1. - dx) * (1. - dy),  # left, bottom
+                    (1. - dx) * dy,         # left, top
+                    dx * (1. - dy),         # right, bottom
+                    dx * dy,                # right, top
                 ], axis=-1).reshape(n_locs, 2, 2)
                 weights = weights / weights.sum(axis=(1, 2), keepdims=True)
 
                 for c in requested & set(nc_names):
                     con_idx = nc_names.index(c) if single_file else 0
-                    # Read only each point's 2x2 window from the lazily-opened arrays (never the whole grid),
-                    # stacking the windows so the interpolation runs across all points at once.
-                    re_block = np.empty((n_locs, 2, 2))
-                    im_block = np.empty((n_locs, 2, 2))
-                    for i in range(n_locs):
+                    # Read only each in-domain point's 2x2 window from the lazily-opened arrays (never the whole
+                    # grid); out-of-domain points keep NaN so they interpolate to NaN.
+                    re_block = np.full((n_locs, 2, 2), np.nan)
+                    im_block = np.full((n_locs, 2, 2), np.nan)
+                    for i in np.nonzero(in_domain)[0]:
                         if single_file:
                             query = np.s_[con_idx, left[i]:right[i] + 1, bottom[i]:top[i] + 1]
                         else:
@@ -123,9 +130,9 @@ class TpxoDB(TidalDB):
                     if positive_ph:
                         phase = np.where(phase < 0.0, phase + 360.0, phase)
                     amplitude = np.absolute(h) * units_multiplier
-                    speed = NOAA_SPEEDS[c][0]
+                    speed = np.where(in_domain, NOAA_SPEEDS[c][0], np.nan)
                     for i in range(n_locs):
-                        rows[i][c] = (float(amplitude[i]), float(phase[i]), speed)
+                        rows[i][c] = (float(amplitude[i]), float(phase[i]), float(speed[i]))
 
         self.data = [
             pd.DataFrame.from_dict(row, orient='index', columns=['amplitude', 'phase', 'speed'])
