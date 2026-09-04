@@ -9,12 +9,33 @@ variables:
   GITLAB_REPO_URL: "https://git.aquaveo.com/Aquaveo/model-executables/harmonica-mirror.git"
   GITHUB_ORG: "Aquaveo"
   GITHUB_REPO_NAME: "harmonica"
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/pip-cache"
+  PYTHON_VERSION: "3.14"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/uv-cache"
+  # uv ignores PIP_* entirely, and ranks --extra-index-url above --index-url (the opposite of pip),
+  # so PyPI stays the default index and the AquaPi channels are listed as extras. public/dev must
+  # come first: unsafe-best-match picks the best version across indexes but takes the first listed
+  # index's files for it, and a channel carrying only an sdist would otherwise win over a real wheel.
+  UV_INDEX_STRATEGY: "unsafe-best-match"
+  UV_EXTRA_INDEX_URL: "https://public.aquapi.aquaveo.com/aquaveo/dev/+simple/ https://aquapi.aquaveo.com/aquaveo/stable/+simple/"
 
 cache:
   paths:
-    - "$CI_PROJECT_DIR/pip-cache"
+    - "$CI_PROJECT_DIR/uv-cache"
   key: "$CI_PROJECT_ID"
+
+# The GLR-UV runner image manages Python with uv. Create and activate a venv at the requested
+# version so each job's script runs inside it; before_script and script share a shell session.
+# Jobs that extend this must not define their own before_script -- GitLab overrides rather than
+# appends -- so per-job setup belongs at the top of script instead.
+.windows_uv_venv:
+  before_script:
+    - uv venv --python "$PYTHON_VERSION"
+    - source .venv/Scripts/activate
+    # The activate script rewrites VIRTUAL_ENV into a POSIX (/cygdrive/...) path that native
+    # Windows tools (devpi, uv) cannot resolve. Replace it with the interpreter's own native path.
+    # Use sys.stdout.write, not print: Windows Python emits \r\n and bash's $(...) only strips
+    # the \n, leaving a stray carriage return in the path.
+    - export VIRTUAL_ENV="$(python -c 'import sys; sys.stdout.write(sys.prefix)')"
 
 "Send Pending Status":
   stage: "Set Pending Github Status"
@@ -22,26 +43,26 @@ cache:
   script:
     - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"pending\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"Gitlab is processing the commit\", \"context\":\"ci/gitlab\"}"
 
+# Lint does not run tox, so it stays on the linux image rather than occupying a Windows runner.
 "Lint Package":
   stage: build
-  image: GLR-py310
+  image: python:3.10-slim
   script:
     # Run python flake
-    - pip install tox flake8 flake8-docstrings flake8-bugbear flake8-import-order pep8-naming flake8-colors
+    - pip install flake8 flake8-docstrings flake8-bugbear flake8-import-order pep8-naming flake8-colors flake8-tidy-imports
     - pip install -i https://aquapi.aquaveo.com/aquaveo/dev/+simple/ flake8-aquaveo
-    - flake8 --exclude .tox,.git,__pycache__,tests/files/*,doc/source/conf.py,build,dist,tests/fixtures/*,*.pyc,*.egg-info,.cache,.eggs --ignore=D200,D212 --max-line-length=120 --docstring-convention google --isolated --import-order-style=appnexus --application-import-names=harmonica --application-package-names=xms --count --statistics .
-  tags:
-    - WinVM
+    - flake8 --exclude .tox,.git,__pycache__,tests/files/*,doc/source/conf.py,docs/source/conf.py,build,dist,tests/fixtures/*,*.pyc,*.egg-info,.cache,.eggs --ignore=D200,D212,B028,W503 --max-line-length=120 --docstring-convention google --isolated --import-order-style=appnexus --application-import-names=harmonica --application-package-names=xms --count --statistics . --banned-modules "osgeo.*=Use the xmsgdal library instead."
 
 "Build Package":
+  extends: .windows_uv_venv
   stage: build
-  image: GLR-py310
-  variables:
-    PIP_INDEX_URL: "https://public.aquapi.aquaveo.com/aquaveo/stable"
+  image: GLR-UV
   script:
-    - pip.exe install coverage tox -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    # The protected tidal databases the tests read live on the internal share.
     - net use \\\\f /user:aquaveo\\${F_DRIVE_USER} ${F_DRIVE_PASSWORD}
-    - tox --workdir .
+    - uv pip install coverage
+    - uv tool install tox --with tox-uv
+    - tox -v --colored yes --workdir "$CI_PROJECT_DIR/.tox"
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
   artifacts:
     paths:
@@ -51,10 +72,12 @@ cache:
     - WinVM
 
 deployment:
+  extends: .windows_uv_venv
   stage: deploy
-  image: GLR-py310
+  image: GLR-UV
   script:
-    - pip.exe install devpi-client -i https://aquapi.aquaveo.com/aquaveo/stable/+simple/
+    # setuptools is not present in a fresh uv venv, and devpi's sdist build shells out to setup.py.
+    - uv pip install devpi-client setuptools
     - devpi use ${DEVPI_URL}
     - devpi login ${DEVPI_USER} --password ${DEVPI_PASS}
     - devpi upload --no-vcs --formats sdist
@@ -76,4 +99,3 @@ deployment:
   script:
     - curl -X POST -H "Content-Type:application/json" -H "Authorization:token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO_NAME/statuses/$CI_COMMIT_SHA" --data "{\"state\":\"failure\", \"target_url\":\"$CI_JOB_URL\", \"description\":\"The job failed\", \"context\":\"ci/gitlab\"}"
   when: on_failure
-
