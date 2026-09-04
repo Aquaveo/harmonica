@@ -75,9 +75,10 @@ setup(
         'Development Status :: 3 - Alpha',
         'Operating System :: OS Independent',
         'Natural Language :: English',
-        'Topic :: Scientific/Engineering'
+        'Topic :: Scientific/Engineering',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.14',
     ],
     python_requires='>=3.10'
 )
